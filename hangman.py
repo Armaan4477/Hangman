@@ -207,8 +207,12 @@ class HangMan_GUI(QtWidgets.QMainWindow, Ui_HangMan):
     def load_random_word_from_firebase(self):
         words_snapshot = self.db_ref.get()
         words_list = [word for word in words_snapshot if word]
-        self.chosenWord = random.choice(words_list)
-        self.chosenMasked = self.maskWord()
+        
+        if words_list:
+            self.chosenWord = random.choice(words_list)
+        else:
+            raise ValueError("No words available. Ensure the Firebase database has words.")
+
 
     # Choose a word for the game
     def chooseWord(self):
