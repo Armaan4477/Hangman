@@ -192,25 +192,27 @@ class HangMan_GUI(QtWidgets.QMainWindow, Ui_HangMan):
 
         self.connectButtons()
 
-        # Fetch words from Firebase
-        self.allWords = self.load_and_clean_words_from_firebase()
-
         # Choose a word for the game and mask it
-        self.chosenWord = self.chooseWord()
-        self.chosenMasked = self.maskWord()
+        self.chosenWord = None
+        self.chosenMasked = None
+
+        # Fetch a random word from Firebase
+        self.load_random_word_from_firebase()
 
         self.lives = 10
 
         # Display word and lives
         self.display()
 
-    def load_and_clean_words_from_firebase(self):
+    def load_random_word_from_firebase(self):
         words_snapshot = self.db_ref.get()
-        return [word for word in words_snapshot if word]
+        words_list = [word for word in words_snapshot if word]
+        self.chosenWord = random.choice(words_list)
+        self.chosenMasked = self.maskWord()
 
     # Choose a word for the game
     def chooseWord(self):
-        return random.choice(self.allWords)
+        return self.chosenWord
 
     # mask chosen word
     def maskWord(self):
@@ -293,7 +295,7 @@ class HangMan_GUI(QtWidgets.QMainWindow, Ui_HangMan):
 
     # choose another word
     def chooseAnotherWord(self):
-        self.chosenWord = self.chooseWord()
+        self.load_random_word_from_firebase()
         self.chosenMasked = self.maskWord()
         self.lives = 10
         self.display()
