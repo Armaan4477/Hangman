@@ -1,27 +1,10 @@
-#     Copyright (C) 2022  Sumair Ijaz Hashmi - LUMS roll number: 24100004
-
-#     This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, either version 3 of the License, or
-#     (at your option) any later version.
-
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU General Public License for more details.
-
-#     You should have received a copy of the GNU General Public License
-#     along with this program.  If not, see <https:#www.gnu.org/licenses/>.
-
-
 import sys
 import os
 import random
-
-
+import firebase_admin
+from firebase_admin import db,credentials
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-# UI designed in Qt-Creator and converted to python using pyuic5
 class Ui_HangMan(object):
     def setupUi(self, HangMan):
         HangMan.setObjectName("HangMan")
@@ -197,45 +180,37 @@ class Ui_HangMan(object):
         self.pushButton_35.setText(_translate("HangMan", "z"))
 
 
-
-class HangMan_GUI(QtWidgets.QMainWindow,Ui_HangMan):
+class HangMan_GUI(QtWidgets.QMainWindow, Ui_HangMan):
     def __init__(self, parent=None):
-
         super(HangMan_GUI, self).__init__(parent)
         self.setupUi(self)
 
+        # Initialize Firebase
+        cred = credentials.Certificate("credentials.json")
+        firebase_admin.initialize_app(cred, {'databaseURL': 'https://hangman-python.asia-southeast1.firebasedatabase.app/'})
+        self.db_ref = db.reference('words')
+
         self.connectButtons()
 
-        # all possible words to choose from
-        self.allWords = self.load_and_clean_words()
+        # Fetch words from Firebase
+        self.allWords = self.load_and_clean_words_from_firebase()
 
-        # choose a word for the game and mask it
+        # Choose a word for the game and mask it
         self.chosenWord = self.chooseWord()
         self.chosenMasked = self.maskWord()
-        
+
         self.lives = 10
 
-        # display word and lives
-        self.display()           
-    
-    def load_and_clean_words(self):
+        # Display word and lives
+        self.display()
 
-        # load words as list
-        file_path_name = os.path.join(os.path.dirname(__file__), "words.txt")
-        all_words = open(file_path_name, 'r')
-        all_words_str = all_words.read()
-        all_words_list = all_words_str.split('\n')
+    def load_and_clean_words_from_firebase(self):
+        words_snapshot = self.db_ref.get()
+        return [word for word in words_snapshot if word]
 
-        # remove last empty line if it is present
-        if all_words_list[-1] == '':
-            all_words_list.remove(all_words_list[-1])
-
-        return all_words_list
-
-    # choose a word for the game
+    # Choose a word for the game
     def chooseWord(self):
-        index = random.randrange(0, len(self.allWords))
-        return self.allWords[index]
+        return random.choice(self.allWords)
 
     # mask chosen word
     def maskWord(self):
@@ -318,39 +293,16 @@ class HangMan_GUI(QtWidgets.QMainWindow,Ui_HangMan):
 
     # choose another word
     def chooseAnotherWord(self):
-
         self.chosenWord = self.chooseWord()
         self.chosenMasked = self.maskWord()
         self.lives = 10
         self.display()
-        # restore all buttons
-        self.pushButton_2.setEnabled(True)
-        self.pushButton_10.setEnabled(True)
-        self.pushButton_11.setEnabled(True)
-        self.pushButton_12.setEnabled(True)
-        self.pushButton_13.setEnabled(True)
-        self.pushButton_14.setEnabled(True)
-        self.pushButton_15.setEnabled(True)
-        self.pushButton_16.setEnabled(True)
-        self.pushButton_17.setEnabled(True)
-        self.pushButton_18.setEnabled(True)
-        self.pushButton_19.setEnabled(True)
-        self.pushButton_20.setEnabled(True)
-        self.pushButton_21.setEnabled(True)
-        self.pushButton_22.setEnabled(True)
-        self.pushButton_23.setEnabled(True)
-        self.pushButton_24.setEnabled(True)
-        self.pushButton_25.setEnabled(True)
-        self.pushButton_26.setEnabled(True)
-        self.pushButton_27.setEnabled(True)
-        self.pushButton_28.setEnabled(True)
-        self.pushButton_29.setEnabled(True)
-        self.pushButton_30.setEnabled(True)
-        self.pushButton_31.setEnabled(True)
-        self.pushButton_32.setEnabled(True)
-        self.pushButton_33.setEnabled(True)
-        self.pushButton_34.setEnabled(True)
-        self.pushButton_35.setEnabled(True)
+        # Restore all buttons
+        self.restore_buttons()
+
+    def restore_buttons(self):
+        for button in self.findChildren(QtWidgets.QPushButton):
+            button.setEnabled(True)
 
     def connectButtons(self):
         self.pushButton_2.clicked.connect(self.giveup)
@@ -461,10 +413,8 @@ class HangMan_GUI(QtWidgets.QMainWindow,Ui_HangMan):
         self.button_pressed('z')
         self.pushButton_35.setEnabled(False)
 
-        
-
-# Run the application
-app = QtWidgets.QApplication(sys.argv)
-form = HangMan_GUI()
-form.show()
-app.exec()
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    form = HangMan_GUI()
+    form.show()
+    app.exec()
