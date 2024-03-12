@@ -1,6 +1,7 @@
 import sys
 import os
 import random
+from PyQt5.QtWidgets import QMessageBox
 import firebase_admin
 from firebase_admin import db,credentials
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -35,6 +36,7 @@ class Ui_HangMan(object):
         self.label_2 = QtWidgets.QLabel(self.verticalLayoutWidget)
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_5.addWidget(self.label_2)
+        
         self.textbox_lives = QtWidgets.QLineEdit(self.verticalLayoutWidget)
         self.textbox_lives.setEnabled(False)
         self.textbox_lives.setObjectName("textbox_lives")
@@ -141,6 +143,14 @@ class Ui_HangMan(object):
         self.statusbar = QtWidgets.QStatusBar(HangMan)
         self.statusbar.setObjectName("statusbar")
         HangMan.setStatusBar(self.statusbar)
+        self.pushButton_add_word = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_add_word.setObjectName("pushButton_add_word")
+        self.pushButton_add_word.setText("Add word")
+        self.pushButton_add_word.clicked.connect(HangMan.add_word)
+        self.horizontalLayout.addWidget(self.pushButton_add_word)
+
+        # Adjust layout to place "Add word" button on the top right
+        self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
 
         self.retranslateUi(HangMan)
         QtCore.QMetaObject.connectSlotsByName(HangMan)
@@ -192,12 +202,12 @@ class HangMan_GUI(QtWidgets.QMainWindow, Ui_HangMan):
 
         self.connectButtons()
 
-        # Choose a word for the game and mask it
-        self.chosenWord = None
-        self.chosenMasked = None
-
         # Fetch a random word from Firebase
         self.load_random_word_from_firebase()
+         
+        # Choose a word for the game and mask it
+        self.chosenWord = self.chooseWord()  # Call chooseWord method
+        self.chosenMasked = self.maskWord()  # Call maskWord method
 
         self.lives = 10
 
@@ -205,17 +215,21 @@ class HangMan_GUI(QtWidgets.QMainWindow, Ui_HangMan):
         self.display()
 
     def load_random_word_from_firebase(self):
-        words_snapshot = self.db_ref.get()
-        words_list = [word for word in words_snapshot if word]
+        #Generate a random number between 1 and 5008
+        random_number = random.randint(1, db.reference('total_words').get())
+        self.chosenWord = db.reference('words').child(str(random_number)).get()
+        # words_snapshot = self.db_ref.get()
+        # words_list = [word for word in words_snapshot if word]
         
-        if words_list:
-            self.chosenWord = random.choice(words_list)
-        else:
-            raise ValueError("No words available. Ensure the Firebase database has words.")
+        # if words_list:
+        #     self.chosenWord = random.choice(words_list)
+        # else:
+        #     raise ValueError("No words available. Ensure the Firebase database has words.")
 
 
     # Choose a word for the game
     def chooseWord(self):
+        self.load_random_word_from_firebase()
         return self.chosenWord
 
     # mask chosen word
@@ -418,7 +432,51 @@ class HangMan_GUI(QtWidgets.QMainWindow, Ui_HangMan):
     def z_press(self):
         self.button_pressed('z')
         self.pushButton_35.setEnabled(False)
+    
+    def add_word(self):
+        # Show a dialog to get the word
+        word, ok = QtWidgets.QInputDialog.getText(self.centralwidget, "Add word", "Enter a word")
+        
+        # Check if the user clicked OK
+        if not ok:
+            return
+        if word is None:
+            QMessageBox.critical(self.centralwidget, "Error", "Please enter a word")
+            return
+        
+        # Fetch all words from the database at once
+        words_snapshot = db.reference("words").get()
+        
+        # Check if the word already exists
+        if words_snapshot:
+            if isinstance(words_snapshot, list):
+                if word in words_snapshot:
+                    QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
+                    return
+            elif isinstance(words_snapshot, dict):
+                if word in words_snapshot.values():
+                    QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
+                    return
+        empty_spaces_ref = db.reference("empty_spaces")
+        empty_spaces = empty_spaces_ref.get()
 
+        # Check if there are available empty spaces
+        if empty_spaces:
+            # Get the first empty space key
+            empty_space_key = next(iter(empty_spaces.keys()))
+
+            # Remove the specific empty space key
+            empty_spaces_ref.child(empty_space_key).delete()
+
+            # Set the word in the database
+            db.reference("words").child(empty_space_key).set(word)
+        else:
+            # If there are no available empty spaces, add the word at the end
+            db.reference("words").child(str(db.reference("total_words").get())).set(word)
+
+        # Indicate success
+        QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
+            
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     form = HangMan_GUI()
