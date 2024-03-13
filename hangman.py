@@ -143,14 +143,38 @@ class Ui_HangMan(object):
         self.statusbar = QtWidgets.QStatusBar(HangMan)
         self.statusbar.setObjectName("statusbar")
         HangMan.setStatusBar(self.statusbar)
+        # self.pushButton_add_word = QtWidgets.QPushButton(self.centralwidget)
+        # self.pushButton_add_word.setObjectName("pushButton_add_word")
+        # self.pushButton_add_word.setText("Add word")
+        # self.pushButton_add_word.clicked.connect(HangMan.add_word)
+        # self.horizontalLayout.addWidget(self.pushButton_add_word)
+        # Create a QHBoxLayout for the Add word button
+        self.horizontalLayout_top = QtWidgets.QHBoxLayout()
+
+        # Add a stretch to push the Add word button to the left
+        self.horizontalLayout_top.addStretch(1)
+
+        # Create the Add word button
         self.pushButton_add_word = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_add_word.setObjectName("pushButton_add_word")
         self.pushButton_add_word.setText("Add word")
         self.pushButton_add_word.clicked.connect(HangMan.add_word)
-        self.horizontalLayout.addWidget(self.pushButton_add_word)
 
-        # Adjust layout to place "Add word" button on the top right
-        self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
+        # Add the Add word button to the layout
+        self.horizontalLayout_top.addWidget(self.pushButton_add_word)
+
+        # Create the Remove word button
+        self.pushButton_remove_word = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_remove_word.setObjectName("pushButton_remove_word")
+        self.pushButton_remove_word.setText("Remove Current word")
+        self.pushButton_remove_word.clicked.connect(HangMan.remove_word)
+
+        # Add the Remove word button to the layout
+        self.horizontalLayout_top.addWidget(self.pushButton_remove_word)
+
+        # Add the layout to the verticalLayout
+        self.verticalLayout.addLayout(self.horizontalLayout_top)
+
 
         self.retranslateUi(HangMan)
         QtCore.QMetaObject.connectSlotsByName(HangMan)
@@ -444,19 +468,27 @@ class HangMan_GUI(QtWidgets.QMainWindow, Ui_HangMan):
             QMessageBox.critical(self.centralwidget, "Error", "Please enter a word")
             return
         
-        # Fetch all words from the database at once
-        words_snapshot = db.reference("words").get()
+        # # Fetch all words from the database at once
+        # words_snapshot = db.reference("words").get()
         
-        # Check if the word already exists
-        if words_snapshot:
-            if isinstance(words_snapshot, list):
-                if word in words_snapshot:
-                    QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
-                    return
-            elif isinstance(words_snapshot, dict):
-                if word in words_snapshot.values():
-                    QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
-                    return
+        # # Check if the word already exists
+        # if words_snapshot:
+        #     if isinstance(words_snapshot, list):
+        #         if word in words_snapshot:
+        #             QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
+        #             return
+        #     elif isinstance(words_snapshot, dict):
+        #         if word in words_snapshot.values():
+        #             QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
+        #             return
+        try:
+            word_index = db.reference("words").get().index(word)
+            if word_index != -1:
+                QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
+                return
+        except ValueError:
+            pass
+        
         empty_spaces_ref = db.reference("empty_spaces")
         empty_spaces = empty_spaces_ref.get()
 
@@ -470,12 +502,24 @@ class HangMan_GUI(QtWidgets.QMainWindow, Ui_HangMan):
 
             # Set the word in the database
             db.reference("words").child(empty_space_key).set(word)
+            db.reference("total_words").set(db.reference("total_words").get() + 1)
         else:
             # If there are no available empty spaces, add the word at the end
             db.reference("words").child(str(db.reference("total_words").get())).set(word)
 
         # Indicate success
         QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
+        
+    def remove_word(self):
+        #Get the current word and its index
+        current_word = self.chosenWord
+        current_word_index = db.reference("words").get().index(current_word)
+        db.reference("empty_spaces").child(str(current_word_index)).set(current_word)
+        db.reference("words").child(str(current_word_index)).delete()
+        db.reference("total_words").set(db.reference("total_words").get() - 1)
+        # Indicate success
+        QMessageBox.information(self.centralwidget, "Success", "Word removed successfully")
+        self.chooseAnotherWord()
             
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
