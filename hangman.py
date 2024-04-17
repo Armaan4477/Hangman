@@ -1,7 +1,11 @@
 import sys
 import random
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,QMessageBox, QInputDialog, QRadioButton)
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QBrush, QPalette, QIcon
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QLineEdit, QPushButton, QMessageBox, QInputDialog, QRadioButton
+)
+from PyQt5.QtCore import Qt
 from firebase_admin import db, credentials, initialize_app
 from PyQt5 import QtCore, QtWidgets
 
@@ -11,6 +15,15 @@ class Ui_StartWindow(object):
         StartWindow.resize(400, 300)
         self.centralwidget = QWidget(StartWindow)
         self.centralwidget.setObjectName("centralwidget")
+        self.main_window = StartWindow
+
+        # Add a background image using QPixmap
+        self.background_image = QPixmap("hangman_background.png")
+        palette = self.centralwidget.palette()
+        palette.setBrush(QPalette.Background, QBrush(self.background_image.scaled(
+            StartWindow.size(), Qt.IgnoreAspectRatio)))
+        self.centralwidget.setAutoFillBackground(True)
+        self.centralwidget.setPalette(palette)
 
         self.verticalLayout = QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -39,22 +52,23 @@ class Ui_StartWindow(object):
         self.start_button = QPushButton("Start Game", self.centralwidget)
         self.verticalLayout.addWidget(self.start_button)
 
+        self.start_button.clicked.connect(self.start_game)
+
         StartWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(StartWindow)
-        QtCore.QMetaObject.connectSlotsByName(StartWindow)
+        StartWindow.resizeEvent = self.resizeEvent
 
     def retranslateUi(self, StartWindow):
-        _translate = QtCore.QCoreApplication.translate
+        _translate = QApplication.translate
         StartWindow.setWindowTitle(_translate("StartWindow", "Hangman Game"))
         self.start_button.setText(_translate("StartWindow", "Start Game"))
 
-class StartWindow(QMainWindow, Ui_StartWindow):
-    def __init__(self, parent=None):
-        super(StartWindow, self).__init__(parent)
-        self.setupUi(self)
-
-        self.start_button.clicked.connect(self.start_game)
+    def resizeEvent(self, event):
+        palette = self.centralwidget.palette()
+        palette.setBrush(QPalette.Background, QBrush(self.background_image.scaled(
+            event.size(), Qt.IgnoreAspectRatio)))
+        self.centralwidget.setPalette(palette)
 
     def start_game(self):
         player_name = self.textbox_name.text()
@@ -74,7 +88,34 @@ class StartWindow(QMainWindow, Ui_StartWindow):
 
         game_window = HangMan_GUI(player_name, difficulty)
         game_window.show()
-        self.close()
+        # Destroy the current window
+        self.main_window.close()
+
+class StartWindow(QMainWindow):
+    def __init__(self, parent=None):
+        super(StartWindow, self).__init__(parent)
+        self.ui = Ui_StartWindow()
+        self.ui.setupUi(self)
+
+    # def start_game(self):
+    #     player_name = self.textbox_name.text()
+    #     if not player_name:
+    #         QMessageBox.critical(self, "Error", "Please enter your name.")
+    #         return
+
+    #     if self.radio_easy.isChecked():
+    #         difficulty = "easy"
+    #     elif self.radio_medium.isChecked():
+    #         difficulty = "medium"
+    #     elif self.radio_hard.isChecked():
+    #         difficulty = "hard"
+    #     else:
+    #         QMessageBox.critical(self, "Error", "Please select a difficulty level.")
+    #         return
+
+    #     game_window = HangMan_GUI(player_name, difficulty)
+    #     game_window.show()
+    #     self.close()
 
 class Ui_HangMan(object):
     def setupUi(self, HangMan):
@@ -82,6 +123,14 @@ class Ui_HangMan(object):
         HangMan.resize(1303, 500)
         self.centralwidget = QWidget(HangMan)
         self.centralwidget.setObjectName("centralwidget")
+
+        # Add a background image using QPixmap
+        self.background_image = QPixmap("hangman_background_2.png")
+        palette = self.centralwidget.palette()
+        palette.setBrush(QPalette.Background, QBrush(self.background_image.scaled(
+            HangMan.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)))  # Updated scaling and added SmoothTransformation
+        self.centralwidget.setAutoFillBackground(True)
+        self.centralwidget.setPalette(palette)
 
         self.verticalLayoutWidget = QWidget(self.centralwidget)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(80, 70, 1128, 388))
@@ -158,15 +207,25 @@ class Ui_HangMan(object):
 
         self.pushButton_remove_word = QPushButton("Remove Current word")
         self.pushButton_remove_word.setObjectName("pushButton_remove_word")
-        self.verticalLayout.addWidget(self.pushButton_remove_word)
+        self.verticalLayout.addWidget(self.pushButton_remove_word) 
 
         self.retranslateUi(HangMan)
+        HangMan.setCentralWidget(self.centralwidget)
+        #Bind the resize event to the resizeEvent method
+        self.centralwidget.resizeEvent = self.resizeEvent
         QtCore.QMetaObject.connectSlotsByName(HangMan)
 
     def retranslateUi(self, HangMan):
         _translate = QtCore.QCoreApplication.translate
         HangMan.setWindowTitle(_translate("HangMan", "HangMan"))
         self.label.setText(_translate("HangMan", "Word so far:"))
+
+    def resizeEvent(self, event):
+        print("Resizing")
+        palette = self.centralwidget.palette()
+        palette.setBrush(QPalette.Background, QBrush(self.background_image.scaled(
+            event.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)))  # Updated scaling and added SmoothTransformation
+        self.centralwidget.setPalette(palette)
 
 class HangMan_GUI(QMainWindow, Ui_HangMan):
     def __init__(self, player_name, difficulty, parent=None):
