@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from firebase_admin import db, credentials, initialize_app
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 class Ui_StartWindow(object):
     def setupUi(self, StartWindow):
@@ -219,12 +219,11 @@ class Ui_HangMan(object):
 
         #Place a label on the extreme top right of the window to display the name of the player
         self.label_player_name = QLabel(self.centralwidget)
-        #place the label relative to the top right corner
-        x = HangMan.width()-100
-        y = 0
-        h = 20
-        self.label_player_name.setGeometry(QtCore.QRect(x, y, 300, h))
-        self.label_player_name.setText("Player: " + player_name)
+        #place the label relative to the top right corner and also wrap the text so that it always is completely visible regardless of the length of the text
+        self.label_player_name.setGeometry(QtCore.QRect(1000, 0, 300, 20))
+        self.label_player_name.setWordWrap(True)
+        text1 = "Player: " + player_name
+        self.label_player_name.setText(text1)
         self.label_player_name.setObjectName("label_player_name")
 
         self.retranslateUi(HangMan)
@@ -241,11 +240,15 @@ class Ui_HangMan(object):
         self.label.move(10, 150)
 
     def resizeEvent(self, event):
-        print("Resizing")
         palette = self.centralwidget.palette()
         palette.setBrush(QPalette.Background, QBrush(self.background_image.scaled(
             event.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)))  # Updated scaling and added SmoothTransformation
         self.centralwidget.setPalette(palette)
+        #also resize the label_image and label_player_name and also enlarge the image and font of text
+        self.label_image.setGeometry(QtCore.QRect(event.size().width()-300, 0, 300, 300))
+        self.label_player_name.setGeometry(QtCore.QRect(event.size().width()-150, 0, 300, 20))
+        self.label_image.setPixmap(QPixmap("1img.png").scaled(300, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.label_player_name.setFont(QtGui.QFont('Arial', 10)) # type: ignore
 
 class HangMan_GUI(QMainWindow, Ui_HangMan):
     def __init__(self, player_name, difficulty, parent=None):
