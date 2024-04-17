@@ -1,9 +1,12 @@
 import sys
 import random
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,QMessageBox, QInputDialog, QRadioButton)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QInputDialog, QRadioButton)
 from PyQt5.QtGui import QIcon, QPixmap
-from firebase_admin import db, credentials, initialize_app
 from PyQt5 import QtCore, QtWidgets
+import os
+
+from firebase_admin import db, credentials, initialize_app
+
 
 class Ui_StartWindow(object):
     def setupUi(self, StartWindow):
@@ -11,6 +14,19 @@ class Ui_StartWindow(object):
         StartWindow.resize(400, 300)
         self.centralwidget = QWidget(StartWindow)
         self.centralwidget.setObjectName("centralwidget")
+
+        # Get the path to the directory where the Python script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Construct the path to the background image
+        background_path = os.path.join(script_dir, "background1.jpg")
+
+        # Set background image for StartWindow
+        background_start_window = QLabel(self.centralwidget)
+        pixmap_start_window = QPixmap(background_path)
+        background_start_window.setPixmap(pixmap_start_window)
+        background_start_window.resize(StartWindow.size())
+        background_start_window.setAlignment(QtCore.Qt.AlignCenter)
 
         self.verticalLayout = QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -49,6 +65,7 @@ class Ui_StartWindow(object):
         StartWindow.setWindowTitle(_translate("StartWindow", "Hangman Game"))
         self.start_button.setText(_translate("StartWindow", "Start Game"))
 
+
 class StartWindow(QMainWindow, Ui_StartWindow):
     def __init__(self, parent=None):
         super(StartWindow, self).__init__(parent)
@@ -75,6 +92,7 @@ class StartWindow(QMainWindow, Ui_StartWindow):
         game_window = HangMan_GUI(player_name, difficulty)
         game_window.show()
         self.close()
+
 
 class Ui_HangMan(object):
     def setupUi(self, HangMan):
@@ -168,6 +186,7 @@ class Ui_HangMan(object):
         HangMan.setWindowTitle(_translate("HangMan", "HangMan"))
         self.label.setText(_translate("HangMan", "Word so far:"))
 
+
 class HangMan_GUI(QMainWindow, Ui_HangMan):
     def __init__(self, player_name, difficulty, parent=None):
         super(HangMan_GUI, self).__init__(parent)
@@ -201,7 +220,7 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
             total_words = db.reference('total_words_hard').get()
         else:
             total_words = 0  # Default to 0 if difficulty not recognized
-        
+
         random_number = random.randint(1, total_words)
 
         if self.difficulty == "easy":
@@ -291,13 +310,13 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
 
     def add_word(self):
         word, ok = QInputDialog.getText(self.centralwidget, "Add word", "Enter a word")
-        
+
         if not ok:
             return
         if not word:
             QMessageBox.critical(self.centralwidget, "Error", "Please enter a word")
             return
-        
+
         word = word.strip()
         word_length = len(word)
         if word_length <= 4:
@@ -306,14 +325,11 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
             difficulty = "medium"
         else:
             difficulty = "hard"
-        
-        print(f"Word: {word}, Difficulty: {difficulty}")
 
         word_list_ref = db.reference(f"{difficulty}_words")
         total_words_ref = db.reference(f"total_words_{difficulty}")
 
         total_words = total_words_ref.get() or 0
-        print(f"Total words: {total_words}")
 
         if word in word_list_ref.get():
             QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
@@ -321,7 +337,6 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
 
         empty_spaces_ref = db.reference("empty_spaces")
         empty_spaces = empty_spaces_ref.get()
-        print(f"Empty spaces: {empty_spaces}")
 
         if not word in word_list_ref.get():
             if empty_spaces and isinstance(empty_spaces, dict) and difficulty in empty_spaces:
