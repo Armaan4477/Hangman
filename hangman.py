@@ -1,10 +1,7 @@
 import sys
 import random
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QMessageBox, QInputDialog, QRadioButton
-)
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,QMessageBox, QInputDialog, QRadioButton)
+from PyQt5.QtGui import QIcon, QPixmap
 from firebase_admin import db, credentials, initialize_app
 from PyQt5 import QtCore, QtWidgets
 
@@ -344,10 +341,6 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         total_words_ref.set(total_words + 1)
         QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
 
-
-
-
-       
     def remove_word(self):
         current_word = self.chosenWord
         current_word_length = len(current_word.strip())
@@ -366,7 +359,6 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
 
         QMessageBox.information(self.centralwidget, "Success", "Word removed successfully")
         self.chooseAnotherWord()
-
 
 
 if __name__ == "__main__":
