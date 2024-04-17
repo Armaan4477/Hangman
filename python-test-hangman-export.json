@@ -1,7 +1,9 @@
 {
   "empty_spaces": {
   },
-  "total_words": 5008,
+  "total_words_easy": 1997,
+  "total_words_medium": 2041,
+  "total_words_hard": 970,
   "easy_words": [
     null,
     "the",
