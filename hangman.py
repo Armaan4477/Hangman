@@ -118,7 +118,7 @@ class StartWindow(QMainWindow):
     #     self.close()
 
 class Ui_HangMan(object):
-    def setupUi(self, HangMan):
+    def setupUi(self, HangMan, player_name):
         HangMan.setObjectName("HangMan")
         HangMan.resize(1303, 700)
         self.centralwidget = QWidget(HangMan)
@@ -212,10 +212,20 @@ class Ui_HangMan(object):
 
         #Place an image as a label on the top right of the window
         self.label_image = QLabel(self.centralwidget)
-        self.label_image.setGeometry(QtCore.QRect(1000, 10, 300, 300))
+        self.label_image.setGeometry(QtCore.QRect(1000, 0, 300, 300))
         self.label_image.setPixmap(QPixmap("1img.png"))
         self.label_image.setScaledContents(True)
         self.label_image.setObjectName("label_image")
+
+        #Place a label on the extreme top right of the window to display the name of the player
+        self.label_player_name = QLabel(self.centralwidget)
+        #place the label relative to the top right corner
+        x = HangMan.width()-100
+        y = 0
+        h = 20
+        self.label_player_name.setGeometry(QtCore.QRect(x, y, 300, h))
+        self.label_player_name.setText("Player: " + player_name)
+        self.label_player_name.setObjectName("label_player_name")
 
         self.retranslateUi(HangMan)
         HangMan.setCentralWidget(self.centralwidget)
@@ -240,7 +250,7 @@ class Ui_HangMan(object):
 class HangMan_GUI(QMainWindow, Ui_HangMan):
     def __init__(self, player_name, difficulty, parent=None):
         super(HangMan_GUI, self).__init__(parent)
-        self.setupUi(self)
+        self.setupUi(self, player_name)
 
         cred = credentials.Certificate("credentials.json")
         initialize_app(cred, {'databaseURL': 'https://hangman-python.asia-southeast1.firebasedatabase.app/'})
