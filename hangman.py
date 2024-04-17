@@ -120,7 +120,7 @@ class StartWindow(QMainWindow):
 class Ui_HangMan(object):
     def setupUi(self, HangMan):
         HangMan.setObjectName("HangMan")
-        HangMan.resize(1303, 500)
+        HangMan.resize(1303, 700)
         self.centralwidget = QWidget(HangMan)
         self.centralwidget.setObjectName("centralwidget")
 
@@ -133,7 +133,8 @@ class Ui_HangMan(object):
         self.centralwidget.setPalette(palette)
 
         self.verticalLayoutWidget = QWidget(self.centralwidget)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(80, 70, 1128, 388))
+        #Set geometry such that widgets start from top left and end at bottom right with 200px space at the bottom side
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(0, 0, 1301, 671))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.verticalLayout = QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -209,6 +210,13 @@ class Ui_HangMan(object):
         self.pushButton_remove_word.setObjectName("pushButton_remove_word")
         self.verticalLayout.addWidget(self.pushButton_remove_word) 
 
+        #Place an image as a label on the top right of the window
+        self.label_image = QLabel(self.centralwidget)
+        self.label_image.setGeometry(QtCore.QRect(1000, 10, 300, 300))
+        self.label_image.setPixmap(QPixmap("1img.png"))
+        self.label_image.setScaledContents(True)
+        self.label_image.setObjectName("label_image")
+
         self.retranslateUi(HangMan)
         HangMan.setCentralWidget(self.centralwidget)
         #Bind the resize event to the resizeEvent method
@@ -219,6 +227,8 @@ class Ui_HangMan(object):
         _translate = QtCore.QCoreApplication.translate
         HangMan.setWindowTitle(_translate("HangMan", "HangMan"))
         self.label.setText(_translate("HangMan", "Word so far:"))
+        #place the text at 10,150
+        self.label.move(10, 150)
 
     def resizeEvent(self, event):
         print("Resizing")
@@ -296,6 +306,22 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
                 self.restartOption()
         else:
             self.lives -= 1
+            # Update the image
+            match self.lives:
+                case 6:
+                    self.label_image.setPixmap(QPixmap("2img.png"))
+                case 5:
+                    self.label_image.setPixmap(QPixmap("3img.png"))
+                case 4:
+                    self.label_image.setPixmap(QPixmap("4img.png"))
+                case 3:
+                    self.label_image.setPixmap(QPixmap("5img.png"))
+                case 2:
+                    self.label_image.setPixmap(QPixmap("6img.png"))
+                case 1:
+                    self.label_image.setPixmap(QPixmap("7img.png"))
+                case 0:
+                    self.label_image.setPixmap(QPixmap("8img.png"))
             self.display()
             if self.lives == 0:
                 self.textbox_lives.setText("You Lose! The word was: " + self.chosenWord)
@@ -324,7 +350,8 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
     def chooseAnotherWord(self):
         self.load_random_word_from_firebase()
         self.chosenMasked = self.maskWord()
-        self.lives = 10
+        self.lives = 7
+        self.label_image.setPixmap(QPixmap("1img.png"))
         self.display()
         for button in self.buttons.values():
             button.setEnabled(True)
