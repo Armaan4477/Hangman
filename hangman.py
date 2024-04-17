@@ -177,7 +177,7 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         self.setupUi(self)
 
         cred = credentials.Certificate("credentials.json")
-        initialize_app(cred, {'databaseURL': 'https://python-test-hangman.asia-southeast1.firebasedatabase.app/'})
+        initialize_app(cred, {'databaseURL': 'https://hangman-python.asia-southeast1.firebasedatabase.app/'})
         self.db_ref = db.reference('words')
 
         self.player_name = player_name
@@ -297,35 +297,77 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         
         if not ok:
             return
-        if word is None:
+        if not word:
             QMessageBox.critical(self.centralwidget, "Error", "Please enter a word")
             return
         
-        word_list_ref = db.reference(f"{self.difficulty}_words")
-        total_words_ref = db.reference(f"total_words_{self.difficulty}")
-
-        total_words = total_words_ref.get()
-        if total_words is None:
-            total_words = 0
-
-        word_index = total_words + 1
-
-        word_list_ref.child(str(word_index)).set(word)
-        total_words_ref.set(total_words + 1)
-
-        QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
+        word = word.strip()
+        word_length = len(word)
+        if word_length <= 4:
+            difficulty = "easy"
+        elif 5 <= word_length <= 8:
+            difficulty = "medium"
+        else:
+            difficulty = "hard"
         
+        print(f"Word: {word}, Difficulty: {difficulty}")
+
+        word_list_ref = db.reference(f"{difficulty}_words")
+        total_words_ref = db.reference(f"total_words_{difficulty}")
+
+        total_words = total_words_ref.get() or 0
+        print(f"Total words: {total_words}")
+
+        if word in word_list_ref.get():
+            QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
+            return
+
+        empty_spaces_ref = db.reference("empty_spaces")
+        empty_spaces = empty_spaces_ref.get()
+        print(f"Empty spaces: {empty_spaces}")
+
+        if not word in word_list_ref.get():
+            if empty_spaces and isinstance(empty_spaces, dict) and difficulty in empty_spaces:
+                empty_indices = empty_spaces[difficulty]
+                if empty_indices:
+                    # Convert string keys to integers
+                    empty_indices = [int(key) for key in empty_indices]
+                    index = empty_indices.pop(0)
+                    word_list_ref.child(str(index)).set(word)
+                    total_words_ref.set(total_words + 1)
+                    empty_spaces_ref.update({difficulty: empty_indices})
+                    QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
+                    return
+
+        # If no empty space found or word exists, append the word to the end
+        word_list_ref.child(str(total_words + 1)).set(word)
+        total_words_ref.set(total_words + 1)
+        QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
+
+
+
+
+       
     def remove_word(self):
         current_word = self.chosenWord
-        word_list_ref = db.reference(f"{self.difficulty}_words")
-        total_words_ref = db.reference(f"total_words_{self.difficulty}")
+        current_word_length = len(current_word.strip())
 
-        current_word_index = word_list_ref.get().index(current_word)
-        word_list_ref.child(str(current_word_index)).delete()
-        total_words_ref.set(total_words_ref.get() - 1)
+        if current_word_length <= 5:
+            difficulty = "easy"
+        elif 6 <= current_word_length <= 8:
+            difficulty = "medium"
+        else:
+            difficulty = "hard"
+
+        current_word_index = db.reference(f"{difficulty}_words").get().index(current_word)
+        db.reference("empty_spaces").child(difficulty).child(str(current_word_index)).set(current_word)
+        db.reference(f"{difficulty}_words").child(str(current_word_index)).delete()
+        db.reference(f"total_words_{difficulty}").set(db.reference(f"total_words_{difficulty}").get() - 1)
 
         QMessageBox.information(self.centralwidget, "Success", "Word removed successfully")
         self.chooseAnotherWord()
+
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
