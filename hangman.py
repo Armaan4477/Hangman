@@ -12,7 +12,7 @@ from PyQt5.QtGui import QIcon
 class Ui_HangMan(object):
     def setupUi(self, HangMan):
         HangMan.setObjectName("HangMan")
-        HangMan.resize(1303, 600)
+        HangMan.resize(1303, 500)
         self.centralwidget = QtWidgets.QWidget(HangMan)
         self.centralwidget.setObjectName("centralwidget")
 
@@ -27,7 +27,7 @@ class Ui_HangMan(object):
         # Label for displaying word
         self.label = QtWidgets.QLabel(self.verticalLayoutWidget)
         self.label.setObjectName("label")
-        self.verticalLayout.addWidget(self.label)
+        self.verticalLayout.addWidget(self.label)        
 
         # Textbox for displaying word
         self.textbox_word = QtWidgets.QLineEdit(self.verticalLayoutWidget)
