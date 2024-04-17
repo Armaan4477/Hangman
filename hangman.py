@@ -1,94 +1,151 @@
 import sys
-import os
 import random
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QInputDialog
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+    QMessageBox, QInputDialog, QRadioButton
 )
-import firebase_admin
-from firebase_admin import db, credentials
-from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon
+from firebase_admin import db, credentials, initialize_app
+from PyQt5 import QtCore, QtWidgets
+
+class Ui_StartWindow(object):
+    def setupUi(self, StartWindow):
+        StartWindow.setObjectName("StartWindow")
+        StartWindow.resize(400, 300)
+        self.centralwidget = QWidget(StartWindow)
+        self.centralwidget.setObjectName("centralwidget")
+
+        self.verticalLayout = QVBoxLayout(self.centralwidget)
+        self.verticalLayout.setObjectName("verticalLayout")
+
+        self.label_name = QLabel("Enter your name:", self.centralwidget)
+        self.verticalLayout.addWidget(self.label_name)
+
+        self.textbox_name = QLineEdit(self.centralwidget)
+        self.verticalLayout.addWidget(self.textbox_name)
+
+        self.label_difficulty = QLabel("Select difficulty:", self.centralwidget)
+        self.verticalLayout.addWidget(self.label_difficulty)
+
+        self.radio_layout = QVBoxLayout()
+        self.verticalLayout.addLayout(self.radio_layout)
+
+        self.radio_easy = QRadioButton("Easy", self.centralwidget)
+        self.radio_layout.addWidget(self.radio_easy)
+
+        self.radio_medium = QRadioButton("Medium", self.centralwidget)
+        self.radio_layout.addWidget(self.radio_medium)
+
+        self.radio_hard = QRadioButton("Hard", self.centralwidget)
+        self.radio_layout.addWidget(self.radio_hard)
+
+        self.start_button = QPushButton("Start Game", self.centralwidget)
+        self.verticalLayout.addWidget(self.start_button)
+
+        StartWindow.setCentralWidget(self.centralwidget)
+
+        self.retranslateUi(StartWindow)
+        QtCore.QMetaObject.connectSlotsByName(StartWindow)
+
+    def retranslateUi(self, StartWindow):
+        _translate = QtCore.QCoreApplication.translate
+        StartWindow.setWindowTitle(_translate("StartWindow", "Hangman Game"))
+        self.start_button.setText(_translate("StartWindow", "Start Game"))
+
+class StartWindow(QMainWindow, Ui_StartWindow):
+    def __init__(self, parent=None):
+        super(StartWindow, self).__init__(parent)
+        self.setupUi(self)
+
+        self.start_button.clicked.connect(self.start_game)
+
+    def start_game(self):
+        player_name = self.textbox_name.text()
+        if not player_name:
+            QMessageBox.critical(self, "Error", "Please enter your name.")
+            return
+
+        if self.radio_easy.isChecked():
+            difficulty = "easy"
+        elif self.radio_medium.isChecked():
+            difficulty = "medium"
+        elif self.radio_hard.isChecked():
+            difficulty = "hard"
+        else:
+            QMessageBox.critical(self, "Error", "Please select a difficulty level.")
+            return
+
+        game_window = HangMan_GUI(player_name, difficulty)
+        game_window.show()
+        self.close()
 
 class Ui_HangMan(object):
     def setupUi(self, HangMan):
         HangMan.setObjectName("HangMan")
         HangMan.resize(1303, 500)
-        self.centralwidget = QtWidgets.QWidget(HangMan)
+        self.centralwidget = QWidget(HangMan)
         self.centralwidget.setObjectName("centralwidget")
 
-        # Create vertical layout for central widget
-        self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
+        self.verticalLayoutWidget = QWidget(self.centralwidget)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(80, 70, 1128, 388))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        self.verticalLayout = QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
 
-        # Label for displaying word
-        self.label = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label = QLabel(self.verticalLayoutWidget)
         self.label.setObjectName("label")
-        self.verticalLayout.addWidget(self.label)        
+        self.verticalLayout.addWidget(self.label)
 
-        # Textbox for displaying word
-        self.textbox_word = QtWidgets.QLineEdit(self.verticalLayoutWidget)
+        self.textbox_word = QLineEdit(self.verticalLayoutWidget)
         self.textbox_word.setEnabled(False)
         self.textbox_word.setObjectName("textbox_word")
         self.verticalLayout.addWidget(self.textbox_word)
 
-        # Horizontal layout for buttons
-        self.button_layout = QtWidgets.QHBoxLayout()
+        self.button_layout = QHBoxLayout()
         self.button_layout.setObjectName("button_layout")
 
-        # Add buttons
         self.buttons = {}
 
-         # Add grid layout for buttons
         self.button_grid_layout = QtWidgets.QGridLayout()
         self.button_grid_layout.setObjectName("button_grid_layout")
         self.verticalLayout.addLayout(self.button_grid_layout)
 
-        # Add buttons to grid layout
         row = 0
         col = 0
         for letter in "abcdefghijklmnopqrstuvwxyz":
             button = QPushButton(letter)
             button.setObjectName(f"pushButton_{letter}")
-            button.setIcon(QIcon("letter_icon.png"))  # Add your icon file path
+            button.setIcon(QIcon("letter_icon.png"))
             self.buttons[letter] = button
             self.button_grid_layout.addWidget(button, row, col)
             col += 1
-            if col == 7:  # Adjust the number of columns as needed
+            if col == 7:
                 col = 0
                 row += 1
 
-        # Button for choosing another word
-        self.pushButton = QtWidgets.QPushButton("Choose some other word")
+        self.pushButton = QPushButton("Choose some other word")
         self.pushButton.setObjectName("pushButton")
         self.verticalLayout.addWidget(self.pushButton)
 
-        # Button for giving up
-        self.pushButton_2 = QtWidgets.QPushButton("Give up")
+        self.pushButton_2 = QPushButton("Give up")
         self.pushButton_2.setObjectName("pushButton_2")
         self.verticalLayout.addWidget(self.pushButton_2)
 
-        # Horizontal layout for remaining lives
-        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_5 = QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.label_2 = QtWidgets.QLabel("Remaining Lives")
+        self.label_2 = QLabel("Remaining Lives")
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_5.addWidget(self.label_2)
 
-        # Textbox for displaying remaining lives
-        self.textbox_lives = QtWidgets.QLineEdit()
+        self.textbox_lives = QLineEdit()
         self.textbox_lives.setEnabled(False)
         self.textbox_lives.setObjectName("textbox_lives")
         self.horizontalLayout_5.addWidget(self.textbox_lives)
         self.verticalLayout.addLayout(self.horizontalLayout_5)
 
-        # Add layout to central widget
         self.centralwidget.setLayout(self.verticalLayout)
 
-        # Add menu bar and status bar
         HangMan.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(HangMan)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1303, 30))
@@ -98,16 +155,14 @@ class Ui_HangMan(object):
         self.statusbar.setObjectName("statusbar")
         HangMan.setStatusBar(self.statusbar)
 
-        # Add "Add word" and "Remove word" buttons
-        self.pushButton_add_word = QtWidgets.QPushButton("Add word")
+        self.pushButton_add_word = QPushButton("Add word")
         self.pushButton_add_word.setObjectName("pushButton_add_word")
         self.verticalLayout.addWidget(self.pushButton_add_word)
 
-        self.pushButton_remove_word = QtWidgets.QPushButton("Remove Current word")
+        self.pushButton_remove_word = QPushButton("Remove Current word")
         self.pushButton_remove_word.setObjectName("pushButton_remove_word")
         self.verticalLayout.addWidget(self.pushButton_remove_word)
 
-        # Connect signals and slots
         self.retranslateUi(HangMan)
         QtCore.QMetaObject.connectSlotsByName(HangMan)
 
@@ -116,38 +171,48 @@ class Ui_HangMan(object):
         HangMan.setWindowTitle(_translate("HangMan", "HangMan"))
         self.label.setText(_translate("HangMan", "Word so far:"))
 
-
 class HangMan_GUI(QMainWindow, Ui_HangMan):
-    def __init__(self, parent=None):
+    def __init__(self, player_name, difficulty, parent=None):
         super(HangMan_GUI, self).__init__(parent)
         self.setupUi(self)
 
-        # Initialize Firebase
         cred = credentials.Certificate("credentials.json")
-        firebase_admin.initialize_app(cred, {'databaseURL': 'https://hangman-python.asia-southeast1.firebasedatabase.app/'})
+        initialize_app(cred, {'databaseURL': 'https://python-test-hangman.asia-southeast1.firebasedatabase.app/'})
         self.db_ref = db.reference('words')
+
+        self.player_name = player_name
+        self.difficulty = difficulty
 
         self.connectButtons()
         self.button_grid_layout = QtWidgets.QGridLayout()
 
-
-        # Fetch a random word from Firebase
         self.load_random_word_from_firebase()
-         
-        # Choose a word for the game and mask it
-        self.chosenWord = self.chooseWord()  # Call chooseWord method
-        self.chosenMasked = self.maskWord()  # Call maskWord method
+
+        self.chosenWord = self.chooseWord()
+        self.chosenMasked = self.maskWord()
 
         self.lives = 10
 
-        # Display word and lives
         self.display()
 
     def load_random_word_from_firebase(self):
-        # Generate a random number between 1 and the total number of words
-        total_words = db.reference('total_words').get()
+        if self.difficulty == "easy":
+            total_words = db.reference('total_words_easy').get()
+        elif self.difficulty == "medium":
+            total_words = db.reference('total_words_medium').get()
+        elif self.difficulty == "hard":
+            total_words = db.reference('total_words_hard').get()
+        else:
+            total_words = 0  # Default to 0 if difficulty not recognized
+        
         random_number = random.randint(1, total_words)
-        self.chosenWord = db.reference('words').child(str(random_number)).get()
+
+        if self.difficulty == "easy":
+            self.chosenWord = db.reference('easy_words').child(str(random_number)).get()
+        elif self.difficulty == "medium":
+            self.chosenWord = db.reference('medium_words').child(str(random_number)).get()
+        elif self.difficulty == "hard":
+            self.chosenWord = db.reference('hard_words').child(str(random_number)).get()
 
     def chooseWord(self):
         self.load_random_word_from_firebase()
@@ -163,7 +228,7 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
 
     def display(self):
         self.textbox_word.setText(self.chosenMasked)
-        self.textbox_lives.setText(str(self.lives)) 
+        self.textbox_lives.setText(str(self.lives))
 
     def button_pressed(self, letter):
         if letter in self.chosenWord:
@@ -181,7 +246,6 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
                 self.freeze()
                 self.restartOption()
 
-        # Disable the button corresponding to the selected letter
         self.buttons[letter].setEnabled(False)
 
     def remakeMasked(self, letter):
@@ -228,8 +292,6 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
             elif event.key() == QtCore.Qt.Key_R:
                 self.chooseAnotherWord()
 
-
-
     def add_word(self):
         word, ok = QInputDialog.getText(self.centralwidget, "Add word", "Enter a word")
         
@@ -239,38 +301,34 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
             QMessageBox.critical(self.centralwidget, "Error", "Please enter a word")
             return
         
-        try:
-            word_index = db.reference("words").get().index(word)
-            if word_index != -1:
-                QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
-                return
-        except ValueError:
-            pass
-        
-        empty_spaces_ref = db.reference("empty_spaces")
-        empty_spaces = empty_spaces_ref.get()
+        word_list_ref = db.reference(f"{self.difficulty}_words")
+        total_words_ref = db.reference(f"total_words_{self.difficulty}")
 
-        if empty_spaces:
-            empty_space_key = next(iter(empty_spaces.keys()))
-            empty_spaces_ref.child(empty_space_key).delete()
-            db.reference("words").child(empty_space_key).set(word)
-            db.reference("total_words").set(db.reference("total_words").get() + 1)
-        else:
-            db.reference("words").child(str(db.reference("total_words").get())).set(word)
+        total_words = total_words_ref.get()
+        if total_words is None:
+            total_words = 0
+
+        word_index = total_words + 1
+
+        word_list_ref.child(str(word_index)).set(word)
+        total_words_ref.set(total_words + 1)
 
         QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
         
     def remove_word(self):
         current_word = self.chosenWord
-        current_word_index = db.reference("words").get().index(current_word)
-        db.reference("empty_spaces").child(str(current_word_index)).set(current_word)
-        db.reference("words").child(str(current_word_index)).delete()
-        db.reference("total_words").set(db.reference("total_words").get() - 1)
+        word_list_ref = db.reference(f"{self.difficulty}_words")
+        total_words_ref = db.reference(f"total_words_{self.difficulty}")
+
+        current_word_index = word_list_ref.get().index(current_word)
+        word_list_ref.child(str(current_word_index)).delete()
+        total_words_ref.set(total_words_ref.get() - 1)
+
         QMessageBox.information(self.centralwidget, "Success", "Word removed successfully")
         self.chooseAnotherWord()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    form = HangMan_GUI()
-    form.show()
+    start_window = StartWindow()
+    start_window.show()
     sys.exit(app.exec_())
