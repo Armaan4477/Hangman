@@ -60,12 +60,6 @@ class Ui_HangMan(object):
             if col == 7:  # Adjust the number of columns as needed
                 col = 0
                 row += 1
-        # for letter in "abcdefghijklmnopqrstuvwxyz":
-        #     button = QPushButton(letter)
-        #     button.setObjectName(f"pushButton_{letter}")
-        #     self.buttons[letter] = button
-        #     self.button_layout.addWidget(button)
-        # self.verticalLayout.addLayout(self.button_layout)
 
         # Button for choosing another word
         self.pushButton = QtWidgets.QPushButton("Choose some other word")
