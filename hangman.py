@@ -187,6 +187,9 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
                 self.freeze()
                 self.restartOption()
 
+        # Disable the button corresponding to the selected letter
+        self.buttons[letter].setEnabled(False)
+
     def remakeMasked(self, letter):
         newMasked = ""
         for i in range(len(self.chosenWord)):
