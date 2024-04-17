@@ -191,7 +191,7 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         self.chosenWord = self.chooseWord()
         self.chosenMasked = self.maskWord()
 
-        self.lives = 10
+        self.lives = 7
 
         self.display()
 
