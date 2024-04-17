@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 import firebase_admin
 from firebase_admin import db, credentials
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QIcon
 
 class Ui_HangMan(object):
     def setupUi(self, HangMan):
@@ -40,12 +41,31 @@ class Ui_HangMan(object):
 
         # Add buttons
         self.buttons = {}
+
+         # Add grid layout for buttons
+        self.button_grid_layout = QtWidgets.QGridLayout()
+        self.button_grid_layout.setObjectName("button_grid_layout")
+        self.verticalLayout.addLayout(self.button_grid_layout)
+
+        # Add buttons to grid layout
+        row = 0
+        col = 0
         for letter in "abcdefghijklmnopqrstuvwxyz":
             button = QPushButton(letter)
             button.setObjectName(f"pushButton_{letter}")
+            button.setIcon(QIcon("letter_icon.png"))  # Add your icon file path
             self.buttons[letter] = button
-            self.button_layout.addWidget(button)
-        self.verticalLayout.addLayout(self.button_layout)
+            self.button_grid_layout.addWidget(button, row, col)
+            col += 1
+            if col == 7:  # Adjust the number of columns as needed
+                col = 0
+                row += 1
+        # for letter in "abcdefghijklmnopqrstuvwxyz":
+        #     button = QPushButton(letter)
+        #     button.setObjectName(f"pushButton_{letter}")
+        #     self.buttons[letter] = button
+        #     self.button_layout.addWidget(button)
+        # self.verticalLayout.addLayout(self.button_layout)
 
         # Button for choosing another word
         self.pushButton = QtWidgets.QPushButton("Choose some other word")
@@ -114,6 +134,8 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         self.db_ref = db.reference('words')
 
         self.connectButtons()
+        self.button_grid_layout = QtWidgets.QGridLayout()
+
 
         # Fetch a random word from Firebase
         self.load_random_word_from_firebase()
@@ -166,13 +188,13 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
                 self.restartOption()
 
     def remakeMasked(self, letter):
-        maskedSplit = []
+        newMasked = ""
         for i in range(len(self.chosenWord)):
             if self.chosenWord[i] == letter:
-                maskedSplit.append(self.chosenMasked[:i] + letter + self.chosenMasked[i+1:])
+                newMasked += letter
             else:
-                maskedSplit.append(self.chosenMasked[i])
-        self.chosenMasked = "".join(maskedSplit)
+                newMasked += self.chosenMasked[i]
+        self.chosenMasked = newMasked
 
     def restartOption(self):
         self.pushButton.setText("Restart Game")
