@@ -218,6 +218,18 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         self.pushButton_remove_word.clicked.connect(self.remove_word)
         self.pushButton.clicked.connect(self.chooseAnotherWord)
 
+    def keyPressEvent(self, event):
+        key = event.text().lower()
+        if key in self.buttons and self.buttons[key].isEnabled():
+            self.button_pressed(key)
+        elif event.modifiers() == QtCore.Qt.ControlModifier:
+            if event.key() == QtCore.Qt.Key_G:
+                self.giveup()
+            elif event.key() == QtCore.Qt.Key_R:
+                self.chooseAnotherWord()
+
+
+
     def add_word(self):
         word, ok = QInputDialog.getText(self.centralwidget, "Add word", "Enter a word")
         
