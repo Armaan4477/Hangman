@@ -256,7 +256,7 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         self.setupUi(self, player_name)
 
         cred = credentials.Certificate("credentials.json")
-        initialize_app(cred, {'databaseURL': 'https://hangman-python.asia-southeast1.firebasedatabase.app/'})
+        initialize_app(cred, {'databaseURL': 'https://hangman-python-game.asia-southeast1.firebasedatabase.app/'})
         self.db_ref = db.reference('words')
 
         self.player_name = player_name
