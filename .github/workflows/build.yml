@@ -26,6 +26,7 @@ jobs:
           pyinstaller --windowed \
           --name="Hangman" \
           --add-data="images:images" \
+          --add-data="credentials.json:." \
           hangman.py
 
       - name: Install create-dmg
@@ -70,6 +71,7 @@ jobs:
           pyinstaller --windowed \
           --name="Hangman" \
           --add-data="images:images" \
+          --add-data="credentials.json:." \
           hangman.py
 
       - name: Install create-dmg
@@ -118,7 +120,7 @@ jobs:
 
       - name: Build for Linux x64
         run: |
-          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" hangman.py
+          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" --add-data="credentials.json:." hangman.py
           mv dist/"Hangman" "Hangman(linux x64)"
 
       - name: Upload Linux x64 artifact
@@ -150,7 +152,7 @@ jobs:
 
       - name: Build for Linux arm
         run: |
-          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" hangman.py
+          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" --add-data="credentials.json:." hangman.py
           mv dist/"Hangman" "Hangman(linux arm)"
 
       - name: Upload Linux arm artifact
@@ -183,7 +185,7 @@ jobs:
 
       - name: Build for Windows x64
         run: |
-             pyinstaller --onefile --windowed --name="Hangman" --add-data="images;images" hangman.py
+             pyinstaller --onefile --windowed --name="Hangman" --add-data="images;images" --add-data="credentials.json;." hangman.py
 
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
