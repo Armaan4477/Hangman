@@ -72,7 +72,7 @@ class Ui_StartWindow(object):
     def start_game(self):
         player_name = self.textbox_name.text()
         if not player_name:
-            QMessageBox.critical(self, "Error", "Please enter your name.")
+            QMessageBox.warning(self.main_window, "Warning", "Please enter your name.")
             return
 
         if self.radio_easy.isChecked():
@@ -82,7 +82,7 @@ class Ui_StartWindow(object):
         elif self.radio_hard.isChecked():
             difficulty = "hard"
         else:
-            QMessageBox.critical(self, "Error", "Please select a difficulty level.")
+            QMessageBox.warning(self.main_window, "Warning", "Please select a difficulty level.")
             return
 
         game_window = HangMan_GUI(player_name, difficulty)
