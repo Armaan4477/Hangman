@@ -1,6 +1,6 @@
 # Hangman Game
 
-A Python implementation of the classic Hangman game with a graphical user interface built using PyQt5 and Firebase Realtime Database for word storage.
+A Python implementation of the classic Hangman game with a graphical user interface built using PyQt6 and Firebase Realtime Database for word storage.
 
 ## Screenshots
 ![Hangman Game Start Screen](images/hangman_screenshot_1.png)
