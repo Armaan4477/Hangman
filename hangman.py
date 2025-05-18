@@ -19,7 +19,13 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     
-    return os.path.join(base_path, relative_path)
+    path = os.path.join(base_path, relative_path)
+    
+    # Verify the file exists
+    if not os.path.exists(path):
+        print(f"Warning: Resource not found: {path}")
+    
+    return path
 
 class Ui_StartWindow(object):
     def setupUi(self, StartWindow):
@@ -247,58 +253,110 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         super(HangMan_GUI, self).__init__(parent)
         self.setupUi(self, player_name)
 
-        cred = credentials.Certificate("credentials.json")
-        # Read the databaseURL from credentials.json
+        # Add error handling for Firebase initialization
         try:
-            with open("credentials.json", "r") as f:
-                import json
-                cred_data = json.load(f)
-                database_url = cred_data.get("databaseURL")
-                
-            if not database_url:
-                raise ValueError("databaseURL not found in credentials.json")
-                
-            initialize_app(cred, {'databaseURL': database_url})
+            cred = credentials.Certificate(resource_path("credentials.json"))
+            try:
+                with open(resource_path("credentials.json"), "r") as f:
+                    import json
+                    cred_data = json.load(f)
+                    database_url = cred_data.get("databaseURL")
+                    
+                if not database_url:
+                    raise ValueError("databaseURL not found in credentials.json")
+                    
+                initialize_app(cred, {'databaseURL': database_url})
+                self.db_ref = db.reference('words')
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to initialize Firebase: {str(e)}")
+                self.close()
+                return
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to initialize Firebase: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to load credentials: {str(e)}")
             self.close()
             return
-            
-        self.db_ref = db.reference('words')
 
         self.player_name = player_name
         self.difficulty = difficulty
+        
+        # Pre-load all hangman images to avoid loading during gameplay
+        self.hangman_images = []
+        try:
+            for i in range(1, 9):  # Images 1 through 8
+                image_path = resource_path(f"images/{i}img.png")
+                pixmap = QPixmap(image_path)
+                if pixmap.isNull():
+                    QMessageBox.critical(self, "Error", f"Failed to load image: {image_path}")
+                    self.close()
+                    return
+                self.hangman_images.append(pixmap)
+            
+            # Set initial image
+            self.label_image.setPixmap(self.hangman_images[0])
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load images: {str(e)}")
+            self.close()
+            return
 
         self.connectButtons()
         self.button_grid_layout = QGridLayout()
 
-        self.load_random_word_from_firebase()
-
-        self.chosenWord = self.chooseWord()
-        self.chosenMasked = self.maskWord()
-
-        self.lives = 7
-
-        self.display()
+        # Load word with error handling
+        try:
+            self.load_random_word_from_firebase()
+            self.chosenWord = self.chosenWord if hasattr(self, 'chosenWord') else "hangman"  # Default fallback
+            self.chosenMasked = self.maskWord()
+            self.lives = 7
+            self.display()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load word: {str(e)}")
+            self.chosenWord = "hangman"  # Default word as fallback
+            self.chosenMasked = self.maskWord()
+            self.lives = 7
+            self.display()
 
     def load_random_word_from_firebase(self):
-        if self.difficulty == "easy":
-            total_words = db.reference('total_words_easy').get()
-        elif self.difficulty == "medium":
-            total_words = db.reference('total_words_medium').get()
-        elif self.difficulty == "hard":
-            total_words = db.reference('total_words_hard').get()
-        else:
-            total_words = 0  # Default to 0 if difficulty not recognized
-        
-        random_number = random.randint(1, total_words)
-
-        if self.difficulty == "easy":
-            self.chosenWord = db.reference('easy_words').child(str(random_number)).get()
-        elif self.difficulty == "medium":
-            self.chosenWord = db.reference('medium_words').child(str(random_number)).get()
-        elif self.difficulty == "hard":
-            self.chosenWord = db.reference('hard_words').child(str(random_number)).get()
+        try:
+            if self.difficulty == "easy":
+                total_words = db.reference('total_words_easy').get() or 0
+            elif self.difficulty == "medium":
+                total_words = db.reference('total_words_medium').get() or 0
+            elif self.difficulty == "hard":
+                total_words = db.reference('total_words_hard').get() or 0
+            else:
+                total_words = 0  # Default to 0 if difficulty not recognized
+            
+            if total_words <= 0:
+                self.chosenWord = "hangman"  # Default word if no words are available
+                return
+                
+            random_number = random.randint(1, total_words)
+            
+            # Use orderByKey for better performance with the index
+            if self.difficulty == "easy":
+                self.chosenWord = db.reference('easy_words').child(str(random_number)).get()
+            elif self.difficulty == "medium":
+                self.chosenWord = db.reference('medium_words').child(str(random_number)).get()
+            elif self.difficulty == "hard":
+                self.chosenWord = db.reference('hard_words').child(str(random_number)).get()
+            
+            # If the word is None (possibly deleted), try again or use default
+            if self.chosenWord is None:
+                # Try one more time with a different number
+                random_number = random.randint(1, total_words) 
+                if self.difficulty == "easy":
+                    self.chosenWord = db.reference('easy_words').child(str(random_number)).get()
+                elif self.difficulty == "medium":
+                    self.chosenWord = db.reference('medium_words').child(str(random_number)).get()
+                elif self.difficulty == "hard":
+                    self.chosenWord = db.reference('hard_words').child(str(random_number)).get()
+                
+                # If still None, use default
+                if self.chosenWord is None:
+                    self.chosenWord = "hangman"
+        except Exception as e:
+            print(f"Error loading word from Firebase: {str(e)}")
+            self.chosenWord = "hangman"  # Fallback to default word
 
     def chooseWord(self):
         self.load_random_word_from_firebase()
@@ -326,22 +384,17 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
                 self.restartOption()
         else:
             self.lives -= 1
-            # Update the image paths using resource_path
-            match self.lives:
-                case 6:
-                    self.label_image.setPixmap(QPixmap(resource_path("images/2img.png")))
-                case 5:
-                    self.label_image.setPixmap(QPixmap(resource_path("images/3img.png")))
-                case 4:
-                    self.label_image.setPixmap(QPixmap(resource_path("images/4img.png")))
-                case 3:
-                    self.label_image.setPixmap(QPixmap(resource_path("images/5img.png")))
-                case 2:
-                    self.label_image.setPixmap(QPixmap(resource_path("images/6img.png")))
-                case 1:
-                    self.label_image.setPixmap(QPixmap(resource_path("images/7img.png")))
-                case 0:
-                    self.label_image.setPixmap(QPixmap(resource_path("images/8img.png")))
+            # Use pre-loaded images instead of loading on each button press
+            try:
+                if 0 <= self.lives < 7:
+                    # Images are zero-indexed in our array, but 1-indexed in filenames
+                    # For lives=6, we want image index 1 (2img.png)
+                    image_index = 7 - self.lives  # Convert lives to correct image index
+                    self.label_image.setPixmap(self.hangman_images[image_index])
+            except Exception as e:
+                # If there's any error updating the image, log it but don't crash
+                print(f"Error updating image: {str(e)}")
+                
             self.display()
             if self.lives == 0:
                 self.textbox_lives.setText("You Lose! The word was: " + self.chosenWord)
@@ -368,14 +421,25 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
             button.setEnabled(False)
 
     def chooseAnotherWord(self):
-        self.load_random_word_from_firebase()
-        self.chosenMasked = self.maskWord()
-        self.lives = 7
-        # Update image path using resource_path
-        self.label_image.setPixmap(QPixmap(resource_path("images/1img.png")))
-        self.display()
-        for button in self.buttons.values():
-            button.setEnabled(True)
+        try:
+            self.load_random_word_from_firebase()
+            self.chosenMasked = self.maskWord()
+            self.lives = 7
+            # Use pre-loaded image
+            self.label_image.setPixmap(self.hangman_images[0])
+            self.display()
+            for button in self.buttons.values():
+                button.setEnabled(True)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load new word: {str(e)}")
+            # Fallback to a default word if we can't load from Firebase
+            self.chosenWord = "hangman"
+            self.chosenMasked = self.maskWord()
+            self.lives = 7
+            self.label_image.setPixmap(self.hangman_images[0])
+            self.display()
+            for button in self.buttons.values():
+                button.setEnabled(True)
 
     def connectButtons(self):
         for letter, button in self.buttons.items():
@@ -405,7 +469,7 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
             QMessageBox.critical(self.centralwidget, "Error", "Please enter a word")
             return
         
-        word = word.strip()
+        word = word.strip().lower()  # Normalize words to lowercase
         word_length = len(word)
         if word_length <= 4:
             difficulty = "easy"
@@ -414,34 +478,37 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         else:
             difficulty = "hard"
         
-        print(f"Word: {word}, Difficulty: {difficulty}")
-
         word_list_ref = db.reference(f"{difficulty}_words")
         total_words_ref = db.reference(f"total_words_{difficulty}")
 
         total_words = total_words_ref.get() or 0
-        print(f"Total words: {total_words}")
-
-        if word in word_list_ref.get():
+        
+        # Check if word exists by using the index
+        word_exists = False
+        words_snapshot = word_list_ref.order_by_value().equal_to(word).get()
+        if words_snapshot:
+            word_exists = True
+            
+        if word_exists:
             QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
             return
 
-        empty_spaces_ref = db.reference("empty_spaces")
-        empty_spaces = empty_spaces_ref.get()
-        print(f"Empty spaces: {empty_spaces}")
-
-        if not word in word_list_ref.get():
-            if empty_spaces and isinstance(empty_spaces, dict) and difficulty in empty_spaces:
-                empty_indices = empty_spaces[difficulty]
-                if empty_indices:
-                    # Convert string keys to integers
-                    empty_indices = [int(key) for key in empty_indices]
-                    index = empty_indices.pop(0)
-                    word_list_ref.child(str(index)).set(word)
-                    total_words_ref.set(total_words + 1)
-                    empty_spaces_ref.update({difficulty: empty_indices})
-                    QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
-                    return
+        empty_spaces_ref = db.reference("empty_spaces").child(difficulty)
+        empty_spaces = empty_spaces_ref.get() or {}
+        
+        if empty_spaces:
+            # Sort the empty indices to use the smallest one first
+            empty_indices = sorted([int(key) for key in empty_spaces.keys()])
+            if empty_indices:
+                index = empty_indices[0]
+                # Add the word to the previously empty slot
+                word_list_ref.child(str(index)).set(word)
+                # Remove the used empty space
+                empty_spaces_ref.child(str(index)).remove()
+                # Update the total word count
+                total_words_ref.set(total_words + 1)
+                QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
+                return
 
         # If no empty space found or word exists, append the word to the end
         word_list_ref.child(str(total_words + 1)).set(word)
@@ -450,19 +517,40 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
 
     def remove_word(self):
         current_word = self.chosenWord
+        if not current_word:
+            QMessageBox.warning(self.centralwidget, "Warning", "No word to remove")
+            return
+            
         current_word_length = len(current_word.strip())
 
-        if current_word_length <= 5:
+        if current_word_length <= 4:
             difficulty = "easy"
-        elif 6 <= current_word_length <= 8:
+        elif 5 <= current_word_length <= 8:
             difficulty = "medium"
         else:
             difficulty = "hard"
 
-        current_word_index = db.reference(f"{difficulty}_words").get().index(current_word)
-        db.reference("empty_spaces").child(difficulty).child(str(current_word_index)).set(current_word)
-        db.reference(f"{difficulty}_words").child(str(current_word_index)).delete()
-        db.reference(f"total_words_{difficulty}").set(db.reference(f"total_words_{difficulty}").get() - 1)
+        # Find the word by its value using the index
+        word_ref = db.reference(f"{difficulty}_words")
+        words_snapshot = word_ref.order_by_value().equal_to(current_word).get()
+        
+        if not words_snapshot:
+            QMessageBox.warning(self.centralwidget, "Warning", "Word not found in database")
+            self.chooseAnotherWord()
+            return
+            
+        # Get the first key where the value matches the current word
+        word_key = list(words_snapshot.keys())[0]
+        
+        # Mark the position as empty
+        db.reference("empty_spaces").child(difficulty).child(word_key).set(True)
+        # Remove the word
+        word_ref.child(word_key).remove()
+        # Update the total word count
+        total_words_ref = db.reference(f"total_words_{difficulty}")
+        total_words = total_words_ref.get() or 0
+        if total_words > 0:
+            total_words_ref.set(total_words - 1)
 
         QMessageBox.information(self.centralwidget, "Success", "Word removed successfully")
         self.chooseAnotherWord()
