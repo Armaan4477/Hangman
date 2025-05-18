@@ -256,7 +256,22 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         self.setupUi(self, player_name)
 
         cred = credentials.Certificate("credentials.json")
-        initialize_app(cred, {'databaseURL': '############'}) #Replace ############ with your Firebase Realtime Database URL
+        # Read the databaseURL from credentials.json
+        try:
+            with open("credentials.json", "r") as f:
+                import json
+                cred_data = json.load(f)
+                database_url = cred_data.get("databaseURL")
+                
+            if not database_url:
+                raise ValueError("databaseURL not found in credentials.json")
+                
+            initialize_app(cred, {'databaseURL': database_url})
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to initialize Firebase: {str(e)}")
+            self.close()
+            return
+            
         self.db_ref = db.reference('words')
 
         self.player_name = player_name
