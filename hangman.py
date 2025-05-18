@@ -1,5 +1,6 @@
 import sys
 import random
+import os
 from PyQt6.QtGui import QImage, QPixmap, QBrush, QPalette, QIcon, QFont
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -9,6 +10,17 @@ from PyQt6.QtCore import Qt
 from firebase_admin import db, credentials, initialize_app
 from PyQt6 import QtCore
 
+# Add resource path helper function
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
 class Ui_StartWindow(object):
     def setupUi(self, StartWindow):
         StartWindow.setObjectName("StartWindow")
@@ -17,8 +29,8 @@ class Ui_StartWindow(object):
         self.centralwidget.setObjectName("centralwidget")
         self.main_window = StartWindow
 
-        # Add a background image using QPixmap
-        self.background_image = QPixmap("images/hangman_background.png")
+        # Update image path using resource_path
+        self.background_image = QPixmap(resource_path("images/hangman_background.png"))
         palette = self.centralwidget.palette()
         palette.setBrush(QPalette.ColorRole.Window, QBrush(self.background_image.scaled(
             StartWindow.size(), Qt.AspectRatioMode.IgnoreAspectRatio)))
@@ -103,8 +115,8 @@ class Ui_HangMan(object):
         self.centralwidget = QWidget(HangMan)
         self.centralwidget.setObjectName("centralwidget")
 
-        # Add a background image using QPixmap
-        self.background_image = QPixmap("images/hangman_background_2.png")
+        # Update image path using resource_path
+        self.background_image = QPixmap(resource_path("images/hangman_background_2.png"))
         palette = self.centralwidget.palette()
         palette.setBrush(QPalette.ColorRole.Window, QBrush(self.background_image.scaled(
             HangMan.size(), Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)))
@@ -142,7 +154,8 @@ class Ui_HangMan(object):
         for letter in "abcdefghijklmnopqrstuvwxyz":
             button = QPushButton(letter)
             button.setObjectName(f"pushButton_{letter}")
-            button.setIcon(QIcon("images/letter_icon.png"))
+            # Update image path using resource_path
+            button.setIcon(QIcon(resource_path("images/letter_icon.png")))
             self.buttons[letter] = button
             self.button_grid_layout.addWidget(button, row, col)
             col += 1
@@ -192,7 +205,8 @@ class Ui_HangMan(object):
         #Place an image as a label on the top right of the window
         self.label_image = QLabel(self.centralwidget)
         self.label_image.setGeometry(QtCore.QRect(1000, 0, 300, 300))
-        self.label_image.setPixmap(QPixmap("images/1img.png"))
+        # Update image path using resource_path
+        self.label_image.setPixmap(QPixmap(resource_path("images/1img.png")))
         self.label_image.setScaledContents(True)
         self.label_image.setObjectName("label_image")
 
@@ -224,7 +238,8 @@ class Ui_HangMan(object):
         #also resize the label_image and label_player_name and also enlarge the image and font of text
         self.label_image.setGeometry(QtCore.QRect(event.size().width()-300, 0, 300, 300))
         self.label_player_name.setGeometry(QtCore.QRect(event.size().width()-150, 0, 300, 20))
-        self.label_image.setPixmap(QPixmap("images/1img.png").scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        # Update image path using resource_path
+        self.label_image.setPixmap(QPixmap(resource_path("images/1img.png")).scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         self.label_player_name.setFont(QFont('Arial', 10))
 
 class HangMan_GUI(QMainWindow, Ui_HangMan):
@@ -311,22 +326,22 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
                 self.restartOption()
         else:
             self.lives -= 1
-            # Update the image
+            # Update the image paths using resource_path
             match self.lives:
                 case 6:
-                    self.label_image.setPixmap(QPixmap("images/2img.png"))
+                    self.label_image.setPixmap(QPixmap(resource_path("images/2img.png")))
                 case 5:
-                    self.label_image.setPixmap(QPixmap("images/3img.png"))
+                    self.label_image.setPixmap(QPixmap(resource_path("images/3img.png")))
                 case 4:
-                    self.label_image.setPixmap(QPixmap("images/4img.png"))
+                    self.label_image.setPixmap(QPixmap(resource_path("images/4img.png")))
                 case 3:
-                    self.label_image.setPixmap(QPixmap("images/5img.png"))
+                    self.label_image.setPixmap(QPixmap(resource_path("images/5img.png")))
                 case 2:
-                    self.label_image.setPixmap(QPixmap("images/6img.png"))
+                    self.label_image.setPixmap(QPixmap(resource_path("images/6img.png")))
                 case 1:
-                    self.label_image.setPixmap(QPixmap("images/7img.png"))
+                    self.label_image.setPixmap(QPixmap(resource_path("images/7img.png")))
                 case 0:
-                    self.label_image.setPixmap(QPixmap("images/8img.png"))
+                    self.label_image.setPixmap(QPixmap(resource_path("images/8img.png")))
             self.display()
             if self.lives == 0:
                 self.textbox_lives.setText("You Lose! The word was: " + self.chosenWord)
@@ -356,7 +371,8 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         self.load_random_word_from_firebase()
         self.chosenMasked = self.maskWord()
         self.lives = 7
-        self.label_image.setPixmap(QPixmap("images/1img.png"))
+        # Update image path using resource_path
+        self.label_image.setPixmap(QPixmap(resource_path("images/1img.png")))
         self.display()
         for button in self.buttons.values():
             button.setEnabled(True)
