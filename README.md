@@ -93,6 +93,16 @@ A Python implementation of the classic Hangman game with a graphical user interf
 
 > **Important**: Replace `https://your-project-id-default-rtdb.firebaseio.com` with your actual Firebase Realtime Database URL, which you can find in the Realtime Database section of the Firebase Console.
 
+### 6. Create encrypted_credentials.txt
+1. Run the `encrypt_credentials.py` script to create an encrypted version of your credentials:
+   ```bash
+   python encrypt_credentials.py
+   ```
+2. This will create a file named `encrypted_credentials.txt` in the same directory as `hangman.py`.
+3. Ensure that `encrypted_credentials.txt` is in the same directory as `hangman.py` for the game to work.
+4. The script will also verify that the encryption works by attempting to decrypt the credentials.
+5. If successful, you will see a message indicating that the credentials were successfully decrypted.
+
 ## Running the Game
 
 Execute the main Python script:
@@ -156,3 +166,27 @@ Hangman/
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+
+
+## Building the app with PyInstaller
+
+When ready to compile the app:
+
+```bash
+pip install pyinstaller
+```
+Then run the following command in the terminal:
+
+```bash
+pyinstaller --windowed \
+          --name="Hangman" \
+          --add-data="images:images" \
+          --add-data="encrypted_credentials.txt:." \
+          hangman.py
+```
+
+This will:
+- Bundle the encrypted credentials file with your app
+- Keep your Firebase credentials secure
+- Maintain the full functionality of your app
