@@ -1,66 +1,158 @@
+# Hangman Game
 
-# Hangman Game 
+A Python implementation of the classic Hangman game with a graphical user interface built using PyQt5 and Firebase Realtime Database for word storage.
 
-## Introduction
+## Screenshots
+![Hangman Game Start Screen](images/hangman_screenshot_1.png)
+    This is the start screen where players can enter their name and select a difficulty level.
 
-The Hangman Game with Python, PyQt5, and Firebase Integration is a modern rendition of the classic word-guessing game, designed to offer an engaging and interactive gaming experience. Developed using Python, PyQt5, and Firebase technologies, this project brings together a blend of programming prowess and contemporary database management.
-
-With PyQt5 as the framework for the graphical user interface (GUI), players can enjoy a visually appealing and intuitive interface, allowing seamless interaction with game elements such as masked words and letter selection buttons. Firebase integration serves as the backbone of the game, providing a dynamic repository of words for gameplay. This integration ensures a constantly evolving word pool, enriching the gaming experience with a diverse range of words across various categories.
+![Hangman Game In-Game Screen](images/hangman_screenshot_2.png)
+    This is the in-game screen where players can guess letters and see their progress.
 
 ## Features
 
-- Start game screen
-- Main game screen
-- Interactive GUI
-- Keybinds to all letters to play
-- Ability to add or remove words from the database that's being used
+- User-friendly graphical interface
+- Multiple difficulty levels (Easy, Medium, Hard)
+- Custom word management (add and remove words)
+- Persistent word storage using Firebase
+- Visual hangman progression
+- Keyboard and mouse input support
 
-## Setup Instructions for Specific Database
+## Prerequisites
 
-To run our project using your specific database, follow these steps:
+- Python 3.11 or higher
+- Firebase account
+- Internet connection for database access
 
-1. **Clone the Project:**
-   - Clone the project repository into your local directory using Git:
-     ```
-     git clone https://github.com/ChampionSamay1644/Sem_4_Mini_Project.git
-     ```
+## Installation
 
-2. **Create a Firebase Account and Project:**
-   - Sign up for a Firebase account or log in if you already have one.
-   - Create a new project in Firebase.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Armaan4477/Hangman.git
+   cd Hangman
+   ```
 
-3. **Download Firebase Credentials:**
-   - In your Firebase project settings, download the security key file.
-   - Rename the downloaded file to `credentials.json` and copy it to the root directory of the cloned project.
+2. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-4. **Set Up Firebase Realtime Database:**
-   - Create a Realtime Database in your Firebase project.
-   - Add all the words you require in the specific format
-   - You can use the `example.json` to import into your realtime database for a basic start and add or remove words from there.
+## Firebase Setup
 
-5. **Update Main File with Database Link:**
-   - Open `main.py` in your preferred code editor.
-   - Replace `"############"` at line 259 of the `Hangman.py` file with your Firebase Realtime Database URL.
-     ```python
-     cred = credentials.Certificate("credentials.json")
-        initialize_app(cred, {'databaseURL': '############'}) #Replace ############ with your Firebase Realtime Database URL
-        self.db_ref = db.reference('words')
-     ```
+### 1. Create a Firebase Project
 
-6. **Install Required Modules:**
-   - Ensure that Python 3.12 and pip are installed on your system, and their paths are properly defined.
-   - Open a terminal in the project directory.
-   - Install all the required modules listed in `requirements.txt` using pip:
-     ```
-     pip install -r requirements.txt
-     ```
+1. Go to the [Firebase Console](https://console.firebase.google.com/)
+2. Click "Add project" and follow the setup wizard
+3. Give your project a name (e.g., "Hangman Game")
+4. Follow the prompts to complete the setup
 
-8. **Run the Project:**
-   - Run the main Python file to start the application:
-     ```
-     python main.py
-     ```
+### 2. Set up Realtime Database
 
-## Conclusion
+1. In the Firebase Console, select your project
+2. Click on "Realtime Database" in the left sidebar
+3. Click "Create Database"
+4. Start in test mode for development (You'll set up proper security rules later)
+5. Choose a database location closest to your users
 
-In conclusion, Hangman remains a timeless favorite, blending simplicity with challenge and educational value. It fosters language skills and strategic thinking. With its enduring appeal and innovative design, Hangman stands as a testament to the power of classic entertainment in the digital era, bringing joy.
+### 3. Import Database Structure
+
+1. In the Realtime Database section, click the overflow menu (three dots) and select "Import JSON"
+2. Upload the provided `hangman_DB-export.json` file
+3. This will populate your database with the required structure and some initial words
+
+### 4. Set Database Rules
+
+1. In the Realtime Database section, click the "Rules" tab
+2. Replace the existing rules with the contents of the provided `rules.txt` file
+3. Click "Publish"
+
+### 5. Generate Firebase Credentials
+
+1. In the Firebase Console, go to Project Settings (gear icon)
+2. Click on the "Service Accounts" tab
+3. Click "Generate new private key"
+4. Save the downloaded JSON file as `credentials.json` in your project directory
+5. Open the `credentials.json` file and add the `databaseURL` field manually:
+
+```json
+{
+  "type": "service_account",
+  "project_id": "your-project-id",
+  "private_key_id": "your-private-key-id",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nYour Private Key\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-xxxxx@your-project-id.iam.gserviceaccount.com",
+  "client_id": "your-client-id",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx%40your-project-id.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com",
+  "databaseURL": "https://your-project-id-default-rtdb.firebaseio.com"
+}
+```
+
+> **Important**: Replace `https://your-project-id-default-rtdb.firebaseio.com` with your actual Firebase Realtime Database URL, which you can find in the Realtime Database section of the Firebase Console.
+
+## Running the Game
+
+Execute the main Python script:
+
+```bash
+python hangman.py
+```
+
+## How to Play
+
+1. Enter your name and select a difficulty level in the start screen
+2. Click "Start Game" to begin
+3. Guess letters by either:
+   - Clicking on the letter buttons
+   - Typing on your keyboard
+4. You have 7 lives (incorrect guesses) before the game ends
+5. Try to guess the word before running out of lives!
+
+## Keyboard Shortcuts
+
+- Type a letter to guess it
+- `Ctrl+G` to give up the current game
+- `Ctrl+R` to restart with a new word
+
+## Word Management
+
+- Click "Add word" to add your own words to the database
+- Click "Remove Current word" to remove the current word from the database
+- Words are automatically assigned to difficulty levels based on their length:
+  - Easy: 4 letters or less
+  - Medium: 5-8 letters
+  - Hard: 9+ letters
+
+## Project Structure
+
+```
+Hangman/
+├── hangman.py          # Main game code
+├── requirements.txt    # Python dependencies
+├── credentials.json    # Firebase credentials (you must create this)
+├── README.md           # This file
+├── images/             # Game images
+│   ├── hangman_background.png
+│   ├── hangman_background_2.png
+│   ├── letter_icon.png
+│   ├── 1img.png        # Hangman state images
+│   ├── 2img.png
+│   └── ...
+├── database_backup/
+    ├── hangman_DB_export.json
+    └── rules.txt
+
+```
+
+## Troubleshooting
+
+- If you see a Firebase initialization error, check your credentials.json file and ensure the databaseURL is correct
+- Make sure your Firebase Realtime Database has been initialized and is in the correct region
+- Verify that all the required images are in the images/ directory
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
