@@ -12,7 +12,7 @@ def encrypt_credentials():
     if not os.path.exists(credentials_path):
         print(f"Error: credentials.json not found at {credentials_path}")
         print("Please make sure credentials.json is in the same directory as this script.")
-        return
+        return False
     
     print(f"Found credentials file at: {credentials_path}")
     
@@ -25,10 +25,10 @@ def encrypt_credentials():
         json.loads(creds_data)
     except json.JSONDecodeError:
         print("Error: credentials.json is not a valid JSON file.")
-        return
+        return False
     except Exception as e:
         print(f"Error reading credentials file: {str(e)}")
-        return
+        return False
     
     try:
         # Generate the encryption key (same method as in the main app)
@@ -56,6 +56,7 @@ def encrypt_credentials():
             decrypted = cipher.decrypt(read_data)
             json.loads(decrypted)
             print("✅ Successfully verified encryption/decryption!")
+            return True
         except Exception as e:
             print(f"❌ Warning: Decryption verification failed: {str(e)}")
         
@@ -70,9 +71,14 @@ def encrypt_credentials():
         print("  1. Use this PyInstaller command:")
         print("     pyinstaller --windowed --name=\"Hangman\" --add-data=\"images:images\" --add-data=\"encrypted_credentials.txt:.\" hangman.py")
         print("  2. This will include the encrypted credentials in your bundled app")
+        return False
             
     except Exception as e:
         print(f"Error during encryption: {str(e)}")
+        return False
 
 if __name__ == "__main__":
-    encrypt_credentials()
+    success = encrypt_credentials()
+    if not success:
+        sys.exit(1)  # Exit with error code for CI/CD to catch failures
+    sys.exit(0)  # Success
