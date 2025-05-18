@@ -5,3 +5,4 @@ credentials.json
 /build
 /dist
 Hangman.spec
+encrypted_credentials.txt

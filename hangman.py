@@ -1,6 +1,9 @@
 import sys
 import random
 import os
+import base64
+import json
+from cryptography.fernet import Fernet
 from PyQt6.QtGui import QImage, QPixmap, QBrush, QPalette, QIcon, QFont
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -10,11 +13,9 @@ from PyQt6.QtCore import Qt
 from firebase_admin import db, credentials, initialize_app
 from PyQt6 import QtCore
 
-# Add resource path helper function
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
     try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
@@ -27,6 +28,33 @@ def resource_path(relative_path):
     
     return path
 
+def get_firebase_credentials():
+    try:
+        machine_id = os.name + sys.platform
+        key_material = machine_id.encode() + b'hangman_secure_key'
+        import hashlib
+        key_hash = hashlib.sha256(key_material).digest()
+        key = base64.urlsafe_b64encode(key_hash[:32])
+
+        encrypted_file_path = resource_path('encrypted_credentials.txt')
+        if not os.path.exists(encrypted_file_path):
+            raise FileNotFoundError(f"Credentials file not found: {encrypted_file_path}")
+            
+        with open(encrypted_file_path, 'rb') as f:
+            encrypted_creds = f.read()
+        
+        cipher = Fernet(key)
+        decrypted_data = cipher.decrypt(encrypted_creds)
+        cred_data = json.loads(decrypted_data)
+        return cred_data
+    except FileNotFoundError as e:
+        print(f"Error: {str(e)}")
+        print("Please run encrypt_credentials.py to generate the encrypted credentials file.")
+        return None
+    except Exception as e:
+        print(f"Error decrypting credentials: {str(e)}")
+        return None
+
 class Ui_StartWindow(object):
     def setupUi(self, StartWindow):
         StartWindow.setObjectName("StartWindow")
@@ -35,7 +63,6 @@ class Ui_StartWindow(object):
         self.centralwidget.setObjectName("centralwidget")
         self.main_window = StartWindow
 
-        # Update image path using resource_path
         self.background_image = QPixmap(resource_path("images/hangman_background.png"))
         palette = self.centralwidget.palette()
         palette.setBrush(QPalette.ColorRole.Window, QBrush(self.background_image.scaled(
@@ -160,8 +187,6 @@ class Ui_HangMan(object):
         for letter in "abcdefghijklmnopqrstuvwxyz":
             button = QPushButton(letter)
             button.setObjectName(f"pushButton_{letter}")
-            # Update image path using resource_path
-            button.setIcon(QIcon(resource_path("images/letter_icon.png")))
             self.buttons[letter] = button
             self.button_grid_layout.addWidget(button, row, col)
             col += 1
@@ -253,36 +278,30 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         super(HangMan_GUI, self).__init__(parent)
         self.setupUi(self, player_name)
 
-        # Add error handling for Firebase initialization
         try:
-            cred = credentials.Certificate(resource_path("credentials.json"))
-            try:
-                with open(resource_path("credentials.json"), "r") as f:
-                    import json
-                    cred_data = json.load(f)
-                    database_url = cred_data.get("databaseURL")
-                    
-                if not database_url:
-                    raise ValueError("databaseURL not found in credentials.json")
-                    
-                initialize_app(cred, {'databaseURL': database_url})
-                self.db_ref = db.reference('words')
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to initialize Firebase: {str(e)}")
-                self.close()
-                return
+            cred_data = get_firebase_credentials()
+            if not cred_data:
+                raise ValueError("Failed to decrypt Firebase credentials")
+                
+            cred = credentials.Certificate(cred_data)
+            database_url = cred_data.get("databaseURL")
+                
+            if not database_url:
+                raise ValueError("databaseURL not found in credentials")
+                
+            initialize_app(cred, {'databaseURL': database_url})
+            self.db_ref = db.reference('words')
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to load credentials: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to initialize Firebase: {str(e)}")
             self.close()
             return
 
         self.player_name = player_name
         self.difficulty = difficulty
-        
-        # Pre-load all hangman images to avoid loading during gameplay
+
         self.hangman_images = []
         try:
-            for i in range(1, 9):  # Images 1 through 8
+            for i in range(1, 9):
                 image_path = resource_path(f"images/{i}img.png")
                 pixmap = QPixmap(image_path)
                 if pixmap.isNull():
