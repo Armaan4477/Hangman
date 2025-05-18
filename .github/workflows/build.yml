@@ -1,0 +1,191 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-macos-x64:
+    runs-on: macos-13
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create credentials file
+        run: echo '${{ secrets.CREDENTIALS_JSON }}' > credentials.json
+
+      - name: Install dependencies
+        run: |
+          pip3 install -r requirements.txt
+          pip3 install pyinstaller
+
+      - name: Build for macOS
+        run: |
+          pyinstaller --windowed \
+          --name="Hangman" \
+          --add-data="images:images" \
+          hangman.py
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Create DMG
+        run: |
+          cd dist
+          create-dmg \
+            --volname "Hangman" \
+            --window-pos 200 120 \
+            --window-size 400 400 \
+            --icon-size 128 \
+            --icon "Hangman.app" 100 150 \
+            --app-drop-link 300 150 \
+            --no-internet-enable \
+            "Hangman(macos-x64).dmg" \
+            "Hangman.app"
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hangman(macOS x64)
+          path: dist/Hangman(macos-x64).dmg
+
+  build-macos-arm:
+    runs-on: macos-15
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create credentials file
+        run: echo '${{ secrets.CREDENTIALS_JSON }}' > credentials.json
+
+      - name: Install dependencies
+        run: |
+          pip3 install -r requirements.txt --break-system-packages
+          pip3 install pyinstaller --break-system-packages
+
+      - name: Build for macOS
+        run: |
+          pyinstaller --windowed \
+          --name="Hangman" \
+          --add-data="images:images" \
+          hangman.py
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Create DMG
+        run: |
+          cd dist
+          create-dmg \
+            --volname "Hangman" \
+            --window-pos 200 120 \
+            --window-size 400 400 \
+            --icon-size 128 \
+            --icon "Hangman.app" 100 150 \
+            --app-drop-link 300 150 \
+            --no-internet-enable \
+            "Hangman(macos-arm).dmg" \
+            "Hangman.app"
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hangman(macOS arm)
+          path: dist/Hangman(macos-arm).dmg
+     
+  build-linux-x64:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create credentials file
+        run: echo '${{ secrets.CREDENTIALS_JSON }}' > credentials.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Install pyinstaller
+        run: pip install pyinstaller
+
+      - name: Build for Linux x64
+        run: |
+          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" hangman.py
+          mv dist/"Hangman" "Hangman(linux x64)"
+
+      - name: Upload Linux x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hangman(linux x64)
+          path: "Hangman(linux x64)"
+
+  build-linux-arm:
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create credentials file
+        run: echo '${{ secrets.CREDENTIALS_JSON }}' > credentials.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Install pyinstaller
+        run: pip install pyinstaller
+
+      - name: Build for Linux arm
+        run: |
+          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" hangman.py
+          mv dist/"Hangman" "Hangman(linux arm)"
+
+      - name: Upload Linux arm artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hangman(linux arm)
+          path: "Hangman(linux arm)"
+
+  build-windows-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create credentials file
+        run: |
+          echo '${{ secrets.CREDENTIALS_JSON }}' > credentials.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Install pyinstaller
+        run: pip install pyinstaller
+
+      - name: Build for Windows x64
+        run: |
+             pyinstaller --onefile --windowed --name="Hangman" --add-data="images;images" hangman.py
+
+      - name: Upload Windows Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hangman(windows x64)
+          path: dist/Hangman.exe
