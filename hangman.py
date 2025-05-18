@@ -1,13 +1,59 @@
 import sys
 import random
-from PyQt5.QtGui import QImage, QPixmap, QBrush, QPalette, QIcon
-from PyQt5.QtWidgets import (
+import os
+import base64
+import json
+from cryptography.fernet import Fernet
+from PyQt6.QtGui import QImage, QPixmap, QBrush, QPalette, QIcon, QFont
+from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QLineEdit, QPushButton, QMessageBox, QInputDialog, QRadioButton
+    QLineEdit, QPushButton, QMessageBox, QInputDialog, QRadioButton, QGridLayout, QMenuBar, QStatusBar
 )
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 from firebase_admin import db, credentials, initialize_app
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt6 import QtCore
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    path = os.path.join(base_path, relative_path)
+    
+    # Verify the file exists
+    if not os.path.exists(path):
+        print(f"Warning: Resource not found: {path}")
+    
+    return path
+
+def get_firebase_credentials():
+    try:
+        machine_id = os.name + sys.platform
+        key_material = machine_id.encode() + b'hangman_secure_key'
+        import hashlib
+        key_hash = hashlib.sha256(key_material).digest()
+        key = base64.urlsafe_b64encode(key_hash[:32])
+
+        encrypted_file_path = resource_path('encrypted_credentials.txt')
+        if not os.path.exists(encrypted_file_path):
+            raise FileNotFoundError(f"Credentials file not found: {encrypted_file_path}")
+            
+        with open(encrypted_file_path, 'rb') as f:
+            encrypted_creds = f.read()
+        
+        cipher = Fernet(key)
+        decrypted_data = cipher.decrypt(encrypted_creds)
+        cred_data = json.loads(decrypted_data)
+        return cred_data
+    except FileNotFoundError as e:
+        print(f"Error: {str(e)}")
+        print("Please run encrypt_credentials.py to generate the encrypted credentials file.")
+        return None
+    except Exception as e:
+        print(f"Error decrypting credentials: {str(e)}")
+        return None
 
 class Ui_StartWindow(object):
     def setupUi(self, StartWindow):
@@ -17,11 +63,10 @@ class Ui_StartWindow(object):
         self.centralwidget.setObjectName("centralwidget")
         self.main_window = StartWindow
 
-        # Add a background image using QPixmap
-        self.background_image = QPixmap("images/hangman_background.png")
+        self.background_image = QPixmap(resource_path("images/hangman_background.png"))
         palette = self.centralwidget.palette()
-        palette.setBrush(QPalette.Background, QBrush(self.background_image.scaled(
-            StartWindow.size(), Qt.IgnoreAspectRatio)))
+        palette.setBrush(QPalette.ColorRole.Window, QBrush(self.background_image.scaled(
+            StartWindow.size(), Qt.AspectRatioMode.IgnoreAspectRatio)))
         self.centralwidget.setAutoFillBackground(True)
         self.centralwidget.setPalette(palette)
 
@@ -60,20 +105,19 @@ class Ui_StartWindow(object):
         StartWindow.resizeEvent = self.resizeEvent
 
     def retranslateUi(self, StartWindow):
-        _translate = QApplication.translate
-        StartWindow.setWindowTitle(_translate("StartWindow", "Hangman Game"))
-        self.start_button.setText(_translate("StartWindow", "Start Game"))
+        StartWindow.setWindowTitle("Hangman Game")
+        self.start_button.setText("Start Game")
 
     def resizeEvent(self, event):
         palette = self.centralwidget.palette()
-        palette.setBrush(QPalette.Background, QBrush(self.background_image.scaled(
-            event.size(), Qt.IgnoreAspectRatio)))
+        palette.setBrush(QPalette.ColorRole.Window, QBrush(self.background_image.scaled(
+            event.size(), Qt.AspectRatioMode.IgnoreAspectRatio)))
         self.centralwidget.setPalette(palette)
 
     def start_game(self):
         player_name = self.textbox_name.text()
         if not player_name:
-            QMessageBox.critical(self, "Error", "Please enter your name.")
+            QMessageBox.warning(self.main_window, "Warning", "Please enter your name.")
             return
 
         if self.radio_easy.isChecked():
@@ -83,7 +127,7 @@ class Ui_StartWindow(object):
         elif self.radio_hard.isChecked():
             difficulty = "hard"
         else:
-            QMessageBox.critical(self, "Error", "Please select a difficulty level.")
+            QMessageBox.warning(self.main_window, "Warning", "Please select a difficulty level.")
             return
 
         game_window = HangMan_GUI(player_name, difficulty)
@@ -97,26 +141,6 @@ class StartWindow(QMainWindow):
         self.ui = Ui_StartWindow()
         self.ui.setupUi(self)
 
-    # def start_game(self):
-    #     player_name = self.textbox_name.text()
-    #     if not player_name:
-    #         QMessageBox.critical(self, "Error", "Please enter your name.")
-    #         return
-
-    #     if self.radio_easy.isChecked():
-    #         difficulty = "easy"
-    #     elif self.radio_medium.isChecked():
-    #         difficulty = "medium"
-    #     elif self.radio_hard.isChecked():
-    #         difficulty = "hard"
-    #     else:
-    #         QMessageBox.critical(self, "Error", "Please select a difficulty level.")
-    #         return
-
-    #     game_window = HangMan_GUI(player_name, difficulty)
-    #     game_window.show()
-    #     self.close()
-
 class Ui_HangMan(object):
     def setupUi(self, HangMan, player_name):
         HangMan.setObjectName("HangMan")
@@ -124,11 +148,11 @@ class Ui_HangMan(object):
         self.centralwidget = QWidget(HangMan)
         self.centralwidget.setObjectName("centralwidget")
 
-        # Add a background image using QPixmap
-        self.background_image = QPixmap("images/hangman_background_2.png")
+        # Update image path using resource_path
+        self.background_image = QPixmap(resource_path("images/hangman_background_2.png"))
         palette = self.centralwidget.palette()
-        palette.setBrush(QPalette.Background, QBrush(self.background_image.scaled(
-            HangMan.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)))  # Updated scaling and added SmoothTransformation
+        palette.setBrush(QPalette.ColorRole.Window, QBrush(self.background_image.scaled(
+            HangMan.size(), Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)))
         self.centralwidget.setAutoFillBackground(True)
         self.centralwidget.setPalette(palette)
 
@@ -154,7 +178,7 @@ class Ui_HangMan(object):
 
         self.buttons = {}
 
-        self.button_grid_layout = QtWidgets.QGridLayout()
+        self.button_grid_layout = QGridLayout()
         self.button_grid_layout.setObjectName("button_grid_layout")
         self.verticalLayout.addLayout(self.button_grid_layout)
 
@@ -163,7 +187,6 @@ class Ui_HangMan(object):
         for letter in "abcdefghijklmnopqrstuvwxyz":
             button = QPushButton(letter)
             button.setObjectName(f"pushButton_{letter}")
-            button.setIcon(QIcon("images/letter_icon.png"))
             self.buttons[letter] = button
             self.button_grid_layout.addWidget(button, row, col)
             col += 1
@@ -194,11 +217,11 @@ class Ui_HangMan(object):
         self.centralwidget.setLayout(self.verticalLayout)
 
         HangMan.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(HangMan)
+        self.menubar = QMenuBar(HangMan)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1303, 30))
         self.menubar.setObjectName("menubar")
         HangMan.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(HangMan)
+        self.statusbar = QStatusBar(HangMan)
         self.statusbar.setObjectName("statusbar")
         HangMan.setStatusBar(self.statusbar)
 
@@ -213,7 +236,8 @@ class Ui_HangMan(object):
         #Place an image as a label on the top right of the window
         self.label_image = QLabel(self.centralwidget)
         self.label_image.setGeometry(QtCore.QRect(1000, 0, 300, 300))
-        self.label_image.setPixmap(QPixmap("images/1img.png"))
+        # Update image path using resource_path
+        self.label_image.setPixmap(QPixmap(resource_path("images/1img.png")))
         self.label_image.setScaledContents(True)
         self.label_image.setObjectName("label_image")
 
@@ -230,83 +254,128 @@ class Ui_HangMan(object):
         HangMan.setCentralWidget(self.centralwidget)
         #Bind the resize event to the resizeEvent method
         self.centralwidget.resizeEvent = self.resizeEvent
-        QtCore.QMetaObject.connectSlotsByName(HangMan)
 
     def retranslateUi(self, HangMan):
-        _translate = QtCore.QCoreApplication.translate
-        HangMan.setWindowTitle(_translate("HangMan", "HangMan"))
-        self.label.setText(_translate("HangMan", "Word so far:"))
+        HangMan.setWindowTitle("HangMan")
+        self.label.setText("Word so far:")
         #place the text at 10,150
         self.label.move(10, 150)
 
     def resizeEvent(self, event):
         palette = self.centralwidget.palette()
-        palette.setBrush(QPalette.Background, QBrush(self.background_image.scaled(
-            event.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)))  # Updated scaling and added SmoothTransformation
+        palette.setBrush(QPalette.ColorRole.Window, QBrush(self.background_image.scaled(
+            event.size(), Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)))
         self.centralwidget.setPalette(palette)
         #also resize the label_image and label_player_name and also enlarge the image and font of text
         self.label_image.setGeometry(QtCore.QRect(event.size().width()-300, 0, 300, 300))
         self.label_player_name.setGeometry(QtCore.QRect(event.size().width()-150, 0, 300, 20))
-        self.label_image.setPixmap(QPixmap("images/1img.png").scaled(300, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        self.label_player_name.setFont(QtGui.QFont('Arial', 10)) # type: ignore
+        # Update image path using resource_path
+        self.label_image.setPixmap(QPixmap(resource_path("images/1img.png")).scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        self.label_player_name.setFont(QFont('Arial', 10))
 
 class HangMan_GUI(QMainWindow, Ui_HangMan):
     def __init__(self, player_name, difficulty, parent=None):
         super(HangMan_GUI, self).__init__(parent)
         self.setupUi(self, player_name)
 
-        cred = credentials.Certificate("credentials.json")
-        # Read the databaseURL from credentials.json
         try:
-            with open("credentials.json", "r") as f:
-                import json
-                cred_data = json.load(f)
-                database_url = cred_data.get("databaseURL")
+            cred_data = get_firebase_credentials()
+            if not cred_data:
+                raise ValueError("Failed to decrypt Firebase credentials")
+                
+            cred = credentials.Certificate(cred_data)
+            database_url = cred_data.get("databaseURL")
                 
             if not database_url:
-                raise ValueError("databaseURL not found in credentials.json")
+                raise ValueError("databaseURL not found in credentials")
                 
             initialize_app(cred, {'databaseURL': database_url})
+            self.db_ref = db.reference('words')
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to initialize Firebase: {str(e)}")
             self.close()
             return
-            
-        self.db_ref = db.reference('words')
 
         self.player_name = player_name
         self.difficulty = difficulty
 
+        self.hangman_images = []
+        try:
+            for i in range(1, 9):
+                image_path = resource_path(f"images/{i}img.png")
+                pixmap = QPixmap(image_path)
+                if pixmap.isNull():
+                    QMessageBox.critical(self, "Error", f"Failed to load image: {image_path}")
+                    self.close()
+                    return
+                self.hangman_images.append(pixmap)
+            
+            # Set initial image
+            self.label_image.setPixmap(self.hangman_images[0])
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load images: {str(e)}")
+            self.close()
+            return
+
         self.connectButtons()
-        self.button_grid_layout = QtWidgets.QGridLayout()
+        self.button_grid_layout = QGridLayout()
 
-        self.load_random_word_from_firebase()
-
-        self.chosenWord = self.chooseWord()
-        self.chosenMasked = self.maskWord()
-
-        self.lives = 7
-
-        self.display()
+        # Load word with error handling
+        try:
+            self.load_random_word_from_firebase()
+            self.chosenWord = self.chosenWord if hasattr(self, 'chosenWord') else "hangman"  # Default fallback
+            self.chosenMasked = self.maskWord()
+            self.lives = 7
+            self.display()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load word: {str(e)}")
+            self.chosenWord = "hangman"  # Default word as fallback
+            self.chosenMasked = self.maskWord()
+            self.lives = 7
+            self.display()
 
     def load_random_word_from_firebase(self):
-        if self.difficulty == "easy":
-            total_words = db.reference('total_words_easy').get()
-        elif self.difficulty == "medium":
-            total_words = db.reference('total_words_medium').get()
-        elif self.difficulty == "hard":
-            total_words = db.reference('total_words_hard').get()
-        else:
-            total_words = 0  # Default to 0 if difficulty not recognized
-        
-        random_number = random.randint(1, total_words)
-
-        if self.difficulty == "easy":
-            self.chosenWord = db.reference('easy_words').child(str(random_number)).get()
-        elif self.difficulty == "medium":
-            self.chosenWord = db.reference('medium_words').child(str(random_number)).get()
-        elif self.difficulty == "hard":
-            self.chosenWord = db.reference('hard_words').child(str(random_number)).get()
+        try:
+            if self.difficulty == "easy":
+                total_words = db.reference('total_words_easy').get() or 0
+            elif self.difficulty == "medium":
+                total_words = db.reference('total_words_medium').get() or 0
+            elif self.difficulty == "hard":
+                total_words = db.reference('total_words_hard').get() or 0
+            else:
+                total_words = 0  # Default to 0 if difficulty not recognized
+            
+            if total_words <= 0:
+                self.chosenWord = "hangman"  # Default word if no words are available
+                return
+                
+            random_number = random.randint(1, total_words)
+            
+            # Use orderByKey for better performance with the index
+            if self.difficulty == "easy":
+                self.chosenWord = db.reference('easy_words').child(str(random_number)).get()
+            elif self.difficulty == "medium":
+                self.chosenWord = db.reference('medium_words').child(str(random_number)).get()
+            elif self.difficulty == "hard":
+                self.chosenWord = db.reference('hard_words').child(str(random_number)).get()
+            
+            # If the word is None (possibly deleted), try again or use default
+            if self.chosenWord is None:
+                # Try one more time with a different number
+                random_number = random.randint(1, total_words) 
+                if self.difficulty == "easy":
+                    self.chosenWord = db.reference('easy_words').child(str(random_number)).get()
+                elif self.difficulty == "medium":
+                    self.chosenWord = db.reference('medium_words').child(str(random_number)).get()
+                elif self.difficulty == "hard":
+                    self.chosenWord = db.reference('hard_words').child(str(random_number)).get()
+                
+                # If still None, use default
+                if self.chosenWord is None:
+                    self.chosenWord = "hangman"
+        except Exception as e:
+            print(f"Error loading word from Firebase: {str(e)}")
+            self.chosenWord = "hangman"  # Fallback to default word
 
     def chooseWord(self):
         self.load_random_word_from_firebase()
@@ -334,22 +403,17 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
                 self.restartOption()
         else:
             self.lives -= 1
-            # Update the image
-            match self.lives:
-                case 6:
-                    self.label_image.setPixmap(QPixmap("images/2img.png"))
-                case 5:
-                    self.label_image.setPixmap(QPixmap("images/3img.png"))
-                case 4:
-                    self.label_image.setPixmap(QPixmap("images/4img.png"))
-                case 3:
-                    self.label_image.setPixmap(QPixmap("images/5img.png"))
-                case 2:
-                    self.label_image.setPixmap(QPixmap("images/6img.png"))
-                case 1:
-                    self.label_image.setPixmap(QPixmap("images/7img.png"))
-                case 0:
-                    self.label_image.setPixmap(QPixmap("images/8img.png"))
+            # Use pre-loaded images instead of loading on each button press
+            try:
+                if 0 <= self.lives < 7:
+                    # Images are zero-indexed in our array, but 1-indexed in filenames
+                    # For lives=6, we want image index 1 (2img.png)
+                    image_index = 7 - self.lives  # Convert lives to correct image index
+                    self.label_image.setPixmap(self.hangman_images[image_index])
+            except Exception as e:
+                # If there's any error updating the image, log it but don't crash
+                print(f"Error updating image: {str(e)}")
+                
             self.display()
             if self.lives == 0:
                 self.textbox_lives.setText("You Lose! The word was: " + self.chosenWord)
@@ -376,13 +440,25 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
             button.setEnabled(False)
 
     def chooseAnotherWord(self):
-        self.load_random_word_from_firebase()
-        self.chosenMasked = self.maskWord()
-        self.lives = 7
-        self.label_image.setPixmap(QPixmap("images/1img.png"))
-        self.display()
-        for button in self.buttons.values():
-            button.setEnabled(True)
+        try:
+            self.load_random_word_from_firebase()
+            self.chosenMasked = self.maskWord()
+            self.lives = 7
+            # Use pre-loaded image
+            self.label_image.setPixmap(self.hangman_images[0])
+            self.display()
+            for button in self.buttons.values():
+                button.setEnabled(True)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load new word: {str(e)}")
+            # Fallback to a default word if we can't load from Firebase
+            self.chosenWord = "hangman"
+            self.chosenMasked = self.maskWord()
+            self.lives = 7
+            self.label_image.setPixmap(self.hangman_images[0])
+            self.display()
+            for button in self.buttons.values():
+                button.setEnabled(True)
 
     def connectButtons(self):
         for letter, button in self.buttons.items():
@@ -397,10 +473,10 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         key = event.text().lower()
         if key in self.buttons and self.buttons[key].isEnabled():
             self.button_pressed(key)
-        elif event.modifiers() == QtCore.Qt.ControlModifier:
-            if event.key() == QtCore.Qt.Key_G:
+        elif event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            if event.key() == Qt.Key.Key_G:
                 self.giveup()
-            elif event.key() == QtCore.Qt.Key_R:
+            elif event.key() == Qt.Key.Key_R:
                 self.chooseAnotherWord()
 
     def add_word(self):
@@ -412,7 +488,7 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
             QMessageBox.critical(self.centralwidget, "Error", "Please enter a word")
             return
         
-        word = word.strip()
+        word = word.strip().lower()  # Normalize words to lowercase
         word_length = len(word)
         if word_length <= 4:
             difficulty = "easy"
@@ -421,34 +497,37 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
         else:
             difficulty = "hard"
         
-        print(f"Word: {word}, Difficulty: {difficulty}")
-
         word_list_ref = db.reference(f"{difficulty}_words")
         total_words_ref = db.reference(f"total_words_{difficulty}")
 
         total_words = total_words_ref.get() or 0
-        print(f"Total words: {total_words}")
-
-        if word in word_list_ref.get():
+        
+        # Check if word exists by using the index
+        word_exists = False
+        words_snapshot = word_list_ref.order_by_value().equal_to(word).get()
+        if words_snapshot:
+            word_exists = True
+            
+        if word_exists:
             QMessageBox.critical(self.centralwidget, "Error", "Word already exists")
             return
 
-        empty_spaces_ref = db.reference("empty_spaces")
-        empty_spaces = empty_spaces_ref.get()
-        print(f"Empty spaces: {empty_spaces}")
-
-        if not word in word_list_ref.get():
-            if empty_spaces and isinstance(empty_spaces, dict) and difficulty in empty_spaces:
-                empty_indices = empty_spaces[difficulty]
-                if empty_indices:
-                    # Convert string keys to integers
-                    empty_indices = [int(key) for key in empty_indices]
-                    index = empty_indices.pop(0)
-                    word_list_ref.child(str(index)).set(word)
-                    total_words_ref.set(total_words + 1)
-                    empty_spaces_ref.update({difficulty: empty_indices})
-                    QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
-                    return
+        empty_spaces_ref = db.reference("empty_spaces").child(difficulty)
+        empty_spaces = empty_spaces_ref.get() or {}
+        
+        if empty_spaces:
+            # Sort the empty indices to use the smallest one first
+            empty_indices = sorted([int(key) for key in empty_spaces.keys()])
+            if empty_indices:
+                index = empty_indices[0]
+                # Add the word to the previously empty slot
+                word_list_ref.child(str(index)).set(word)
+                # Remove the used empty space
+                empty_spaces_ref.child(str(index)).remove()
+                # Update the total word count
+                total_words_ref.set(total_words + 1)
+                QMessageBox.information(self.centralwidget, "Success", "Word added successfully")
+                return
 
         # If no empty space found or word exists, append the word to the end
         word_list_ref.child(str(total_words + 1)).set(word)
@@ -457,19 +536,40 @@ class HangMan_GUI(QMainWindow, Ui_HangMan):
 
     def remove_word(self):
         current_word = self.chosenWord
+        if not current_word:
+            QMessageBox.warning(self.centralwidget, "Warning", "No word to remove")
+            return
+            
         current_word_length = len(current_word.strip())
 
-        if current_word_length <= 5:
+        if current_word_length <= 4:
             difficulty = "easy"
-        elif 6 <= current_word_length <= 8:
+        elif 5 <= current_word_length <= 8:
             difficulty = "medium"
         else:
             difficulty = "hard"
 
-        current_word_index = db.reference(f"{difficulty}_words").get().index(current_word)
-        db.reference("empty_spaces").child(difficulty).child(str(current_word_index)).set(current_word)
-        db.reference(f"{difficulty}_words").child(str(current_word_index)).delete()
-        db.reference(f"total_words_{difficulty}").set(db.reference(f"total_words_{difficulty}").get() - 1)
+        # Find the word by its value using the index
+        word_ref = db.reference(f"{difficulty}_words")
+        words_snapshot = word_ref.order_by_value().equal_to(current_word).get()
+        
+        if not words_snapshot:
+            QMessageBox.warning(self.centralwidget, "Warning", "Word not found in database")
+            self.chooseAnotherWord()
+            return
+            
+        # Get the first key where the value matches the current word
+        word_key = list(words_snapshot.keys())[0]
+        
+        # Mark the position as empty
+        db.reference("empty_spaces").child(difficulty).child(word_key).set(True)
+        # Remove the word
+        word_ref.child(word_key).remove()
+        # Update the total word count
+        total_words_ref = db.reference(f"total_words_{difficulty}")
+        total_words = total_words_ref.get() or 0
+        if total_words > 0:
+            total_words_ref.set(total_words - 1)
 
         QMessageBox.information(self.centralwidget, "Success", "Word removed successfully")
         self.chooseAnotherWord()
@@ -479,4 +579,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     start_window = StartWindow()
     start_window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())  # Note: exec() not exec_() in PyQt6

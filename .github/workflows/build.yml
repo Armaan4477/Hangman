@@ -20,11 +20,15 @@ jobs:
           pip3 install -r requirements.txt
           pip3 install pyinstaller
 
+      - name: Generate encrypted credentials
+        run: python3 encrypt_credentials.py
+
       - name: Build for macOS
         run: |
           pyinstaller --windowed \
           --name="Hangman" \
           --add-data="images:images" \
+          --add-data="encrypted_credentials.txt:." \
           hangman.py
 
       - name: Install create-dmg
@@ -64,11 +68,15 @@ jobs:
           pip3 install -r requirements.txt --break-system-packages
           pip3 install pyinstaller --break-system-packages
 
+      - name: Generate encrypted credentials
+        run: python3 encrypt_credentials.py
+
       - name: Build for macOS
         run: |
           pyinstaller --windowed \
           --name="Hangman" \
           --add-data="images:images" \
+          --add-data="encrypted_credentials.txt:." \
           hangman.py
 
       - name: Install create-dmg
@@ -112,12 +120,15 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Generate encrypted credentials
+        run: python encrypt_credentials.py
+
       - name: Install pyinstaller
         run: pip install pyinstaller
 
       - name: Build for Linux x64
         run: |
-          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" hangman.py
+          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" --add-data="encrypted_credentials.txt:." hangman.py
           mv dist/"Hangman" "Hangman(linux x64)"
 
       - name: Upload Linux x64 artifact
@@ -144,12 +155,15 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Generate encrypted credentials
+        run: python encrypt_credentials.py
+
       - name: Install pyinstaller
         run: pip install pyinstaller
 
       - name: Build for Linux arm
         run: |
-          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" hangman.py
+          pyinstaller --onefile --clean --name "Hangman" --add-data="images:images" --add-data="encrypted_credentials.txt:." hangman.py
           mv dist/"Hangman" "Hangman(linux arm)"
 
       - name: Upload Linux arm artifact
@@ -177,12 +191,15 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Generate encrypted credentials
+        run: python encrypt_credentials.py
+
       - name: Install pyinstaller
         run: pip install pyinstaller
 
       - name: Build for Windows x64
         run: |
-             pyinstaller --onefile --windowed --name="Hangman" --add-data="images;images" hangman.py
+             pyinstaller --onefile --windowed --name="Hangman" --add-data="images;images" --add-data="encrypted_credentials.txt;." hangman.py
 
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4

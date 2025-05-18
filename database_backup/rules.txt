@@ -1,6 +1,51 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true
+    ".read": "auth != null",
+    ".write": "auth != null",
+    
+    "easy_words": {
+      ".indexOn": ".value",
+      "$word_id": {
+        ".validate": "newData.isString() && newData.val().length <= 4"
+      }
+    },
+    
+    "medium_words": {
+      ".indexOn": ".value",
+      "$word_id": {
+        ".validate": "newData.isString() && newData.val().length >= 5 && newData.val().length <= 8"
+      }
+    },
+    
+    "hard_words": {
+      ".indexOn": ".value",
+      "$word_id": {
+        ".validate": "newData.isString() && newData.val().length > 8"
+      }
+    },
+    
+    "total_words_easy": {
+      ".validate": "newData.isNumber()"
+    },
+    
+    "total_words_medium": {
+      ".validate": "newData.isNumber()"
+    },
+    
+    "total_words_hard": {
+      ".validate": "newData.isNumber()"
+    },
+    
+    "empty_spaces": {
+      "easy": {
+        ".indexOn": ".key"
+      },
+      "medium": {
+        ".indexOn": ".key"
+      },
+      "hard": {
+        ".indexOn": ".key"
+      }
+    }
   }
 }
