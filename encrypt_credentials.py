@@ -46,7 +46,7 @@ def encrypt_credentials():
         with open(output_file, "wb") as f:
             f.write(encrypted_data)
         
-        print(f"\n✅ Successfully encrypted credentials to {output_file}")
+        print(f"\nSuccessfully encrypted credentials to {output_file}")
         
         # Test decryption to verify it works
         try:
@@ -55,23 +55,11 @@ def encrypt_credentials():
             
             decrypted = cipher.decrypt(read_data)
             json.loads(decrypted)
-            print("✅ Successfully verified encryption/decryption!")
+            print("Successfully verified encryption/decryption!")
             return True
         except Exception as e:
-            print(f"❌ Warning: Decryption verification failed: {str(e)}")
-        
-        # Print instructions for developers
-        print("\n=== INSTRUCTIONS ===")
-        print("For development:")
-        print("  1. The file 'encrypted_credentials.txt' has been created")
-        print("  2. Keep this file in the same directory as hangman.py")
-        print("  3. The app will now automatically load credentials from this file")
-        
-        print("\nFor distribution:")
-        print("  1. Use this PyInstaller command:")
-        print("     pyinstaller --windowed --name=\"Hangman\" --add-data=\"images:images\" --add-data=\"encrypted_credentials.txt:.\" hangman.py")
-        print("  2. This will include the encrypted credentials in your bundled app")
-        return False
+            print(f"Warning: Decryption verification failed: {str(e)}")
+            return False
             
     except Exception as e:
         print(f"Error during encryption: {str(e)}")
